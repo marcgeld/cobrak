@@ -1,11 +1,13 @@
 module github.com/marcgeld/cobrak
 
-go 1.24.0
+go 1.24.12
 
 require (
-	github.com/spf13/cobra v1.10.2
-	k8s.io/apimachinery v0.33.0
-	k8s.io/client-go v0.32.3
+	github.com/spf13/cobra v1.8.1
+	k8s.io/api v0.32.2
+	k8s.io/apimachinery v0.32.2
+	k8s.io/client-go v0.32.2
+	k8s.io/metrics v0.32.2
 )
 
 require (

@@ -4,19 +4,22 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var kubeconfigFlag string
-
-// NewRootCmd returns the root cobra command for cobrak.
-func NewRootCmd() *cobra.Command {
+func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
 		Use:   "cobrak",
-		Short: "cobrak is a modular Kubernetes cluster analysis tool",
-		Long:  "cobrak inspects cluster state from the command line. Use a subcommand to analyse a specific aspect.",
+		Short: "cobrak - analytical CLI for Kubernetes cluster state",
+		Long:  "cobrak is a modular, lightweight, fast analytical tool for inspecting cluster state from the command line.",
 	}
 
-	root.PersistentFlags().StringVar(&kubeconfigFlag, "kubeconfig", "", "path to kubeconfig file (overrides KUBECONFIG env and ~/.kube/config)")
+	root.PersistentFlags().String("kubeconfig", "", "path to kubeconfig file (default: KUBECONFIG env or ~/.kube/config)")
+	root.PersistentFlags().String("context", "", "kubeconfig context to use")
 
-	root.AddCommand(newCapacityCmd(&kubeconfigFlag))
+	root.AddCommand(newResourcesCmd())
 
 	return root
+}
+
+// Execute runs the root command.
+func Execute() error {
+	return newRootCmd().Execute()
 }
