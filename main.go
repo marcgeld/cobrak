@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/marcgeld/cobrak/cmd"
 )
 
 func main() {
-	if err := cmd.Execute(); err != nil {
+	root := cmd.NewRootCmd()
+	if err := root.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
