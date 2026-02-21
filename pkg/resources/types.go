@@ -99,3 +99,19 @@ type ContainerDiff struct {
 	CPUUsageToRequest float64
 	MemUsageToRequest float64
 }
+
+// PodResourceSummary aggregates CPU/memory usage, requests, and limits for a pod.
+type PodResourceSummary struct {
+	Namespace string
+	PodName   string
+
+	// CPU values
+	CPUUsage   resource.Quantity
+	CPURequest resource.Quantity
+	CPULimit   resource.Quantity
+
+	// Memory values
+	MemUsage   resource.Quantity
+	MemRequest resource.Quantity
+	MemLimit   resource.Quantity
+}

@@ -16,13 +16,15 @@ func newCapacityCmd(kubeconfigFlag *string) *cobra.Command {
 		Use:   "capacity",
 		Short: "Show CPU and memory capacity for each node",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			resolver := kubeconfig.NewDefaultResolver()
-			kubeconfigPath, err := resolver.Resolve(*kubeconfigFlag)
+			kubeconfig, _ := cmd.Root().PersistentFlags().GetString("kubeconfig")
+			kubeCtx, _ := cmd.Root().PersistentFlags().GetString("context")
+
+			cfg, err := k8s.NewRestConfig(kubeconfig, kubeCtx)
 			if err != nil {
-				return fmt.Errorf("resolving kubeconfig: %w", err)
+				return fmt.Errorf("building rest config: %w", err)
 			}
 
-			client, err := k8s.NewClient(kubeconfigPath)
+			client, err := k8s.NewClientFromConfig(cfg)
 			if err != nil {
 				return fmt.Errorf("creating k8s client: %w", err)
 			}

@@ -5,6 +5,8 @@ import (
 )
 
 func newRootCmd() *cobra.Command {
+	kubeconfig := ""
+
 	root := &cobra.Command{
 		Use:   "cobrak",
 		Short: "cobrak - analytical CLI for Kubernetes cluster state",
@@ -15,8 +17,16 @@ func newRootCmd() *cobra.Command {
 	root.PersistentFlags().String("context", "", "kubeconfig context to use")
 
 	root.AddCommand(newResourcesCmd())
+	root.AddCommand(newCapacityCmd(&kubeconfig))
+	root.AddCommand(newNodeInfoCmd())
+	root.AddCommand(newConfigCmd())
 
 	return root
+}
+
+// NewRootCmd returns the root command for cobrak.
+func NewRootCmd() *cobra.Command {
+	return newRootCmd()
 }
 
 // Execute runs the root command.

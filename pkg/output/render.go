@@ -7,9 +7,14 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	v1 "k8s.io/api/core/v1"
+	"github.com/marcgeld/cobrak/pkg/capacity"
 	"github.com/marcgeld/cobrak/pkg/resources"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
+
+// Pressure is an alias for capacity.ClusterPressure
+type Pressure = capacity.ClusterPressure
 
 // RenderNamespaceInventoryTable formats a table of namespace inventories.
 func RenderNamespaceInventoryTable(inventories []resources.NamespaceInventory) string {
@@ -115,6 +120,36 @@ func RenderPolicySummary(policies []resources.PolicySummary) string {
 	return strings.TrimRight(sb.String(), "\n")
 }
 
+// RenderPressureSimple renders a simple pressure summary.
+func RenderPressureSimple(pressure *Pressure) string {
+	var sb strings.Builder
+
+	// Cluster overall pressure
+	sb.WriteString(fmt.Sprintf("Cluster Pressure: %s\n", pressure.Overall))
+
+	// Node pressures
+	for _, np := range pressure.NodePressures {
+		if np.CPUPressure != "LOW" {
+			sb.WriteString(fmt.Sprintf("Node %s: CPU %s (%.0f%%)\n", np.NodeName, np.CPUPressure, np.CPUUtilization))
+		}
+		if np.MemPressure != "LOW" {
+			sb.WriteString(fmt.Sprintf("Node %s: Memory %s (%.0f%%)\n", np.NodeName, np.MemPressure, np.MemUtilization))
+		}
+	}
+
+	// Namespace pressures - only show if > 80%
+	for _, nsp := range pressure.NamespacePressures {
+		if nsp.CPUPercent >= 80 {
+			sb.WriteString(fmt.Sprintf("Namespace %s: CPU %.0f%% requested\n", nsp.Namespace, nsp.CPUPercent))
+		}
+		if nsp.MemPercent >= 80 {
+			sb.WriteString(fmt.Sprintf("Namespace %s: Memory %.0f%% requested\n", nsp.Namespace, nsp.MemPercent))
+		}
+	}
+
+	return strings.TrimRight(sb.String(), "\n")
+}
+
 // RenderUsageTable formats a table of container usages.
 func RenderUsageTable(usages []resources.ContainerUsage, top int) string {
 	if len(usages) == 0 {
@@ -168,4 +203,83 @@ func RenderDiffTable(diffs []resources.ContainerDiff, top int) string {
 	}
 	w.Flush()
 	return strings.TrimRight(buf.String(), "\n")
+}
+
+// RenderPodResourceSummary formats a table of pod resource summaries (requests/limits).
+func RenderPodResourceSummary(pods []resources.PodResourceSummary) string {
+	if len(pods) == 0 {
+		return "No pods found."
+	}
+
+	var buf bytes.Buffer
+	w := tabwriter.NewWriter(&buf, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "NAMESPACE\tPOD\tCPU REQUEST\tCPU LIMIT\tMEM REQUEST\tMEM LIMIT")
+	for _, pod := range pods {
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
+			pod.Namespace, pod.PodName,
+			pod.CPURequest.String(), pod.CPULimit.String(),
+			pod.MemRequest.String(), pod.MemLimit.String(),
+		)
+	}
+	w.Flush()
+	return strings.TrimRight(buf.String(), "\n")
+}
+
+// RenderPodResourceSummaryWithUsage formats a table of pod resource summaries including usage data.
+func RenderPodResourceSummaryWithUsage(pods []resources.PodResourceSummary) string {
+	if len(pods) == 0 {
+		return "No pods found."
+	}
+
+	var buf bytes.Buffer
+	w := tabwriter.NewWriter(&buf, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "NAMESPACE\tPOD\tCPU USAGE\tCPU REQUEST\tCPU LIMIT\tMEM USAGE\tMEM REQUEST\tMEM LIMIT")
+	for _, pod := range pods {
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			pod.Namespace, pod.PodName,
+			pod.CPUUsage.String(), pod.CPURequest.String(), pod.CPULimit.String(),
+			pod.MemUsage.String(), pod.MemRequest.String(), pod.MemLimit.String(),
+		)
+	}
+	w.Flush()
+	return strings.TrimRight(buf.String(), "\n")
+}
+
+// RenderPodResourceSummaryTotals renders totals for pod resource summaries.
+func RenderPodResourceSummaryTotals(pods []resources.PodResourceSummary) string {
+	if len(pods) == 0 {
+		return ""
+	}
+
+	var totalCPUUsage, totalCPURequest, totalCPULimit *resource.Quantity
+	var totalMemUsage, totalMemRequest, totalMemLimit *resource.Quantity
+
+	// Initialize with zero values
+	totalCPUUsage = resource.NewQuantity(0, resource.DecimalSI)
+	totalCPURequest = resource.NewQuantity(0, resource.DecimalSI)
+	totalCPULimit = resource.NewQuantity(0, resource.DecimalSI)
+	totalMemUsage = resource.NewQuantity(0, resource.BinarySI)
+	totalMemRequest = resource.NewQuantity(0, resource.BinarySI)
+	totalMemLimit = resource.NewQuantity(0, resource.BinarySI)
+
+	// Sum all values
+	for _, pod := range pods {
+		totalCPUUsage.Add(pod.CPUUsage)
+		totalCPURequest.Add(pod.CPURequest)
+		totalCPULimit.Add(pod.CPULimit)
+		totalMemUsage.Add(pod.MemUsage)
+		totalMemRequest.Add(pod.MemRequest)
+		totalMemLimit.Add(pod.MemLimit)
+	}
+
+	var sb strings.Builder
+	sb.WriteString("=== TOTALS ===\n")
+	sb.WriteString(fmt.Sprintf("Total CPU Usage:       %s\n", totalCPUUsage.String()))
+	sb.WriteString(fmt.Sprintf("Total CPU Requests:    %s\n", totalCPURequest.String()))
+	sb.WriteString(fmt.Sprintf("Total CPU Limits:      %s\n", totalCPULimit.String()))
+	sb.WriteString(fmt.Sprintf("\nTotal Memory Usage:    %s\n", totalMemUsage.String()))
+	sb.WriteString(fmt.Sprintf("Total Memory Requests: %s\n", totalMemRequest.String()))
+	sb.WriteString(fmt.Sprintf("Total Memory Limits:   %s\n", totalMemLimit.String()))
+
+	return strings.TrimRight(sb.String(), "\n")
 }
