@@ -8,6 +8,14 @@
 *.so
 *.dylib
 
+# Build artifacts
+/cobrak
+/dist/
+
+# GoReleaser
+dist/
+*.sig
+
 # Test binary, built with `go test -c`
 *.test
 
@@ -26,6 +34,10 @@ go.work.sum
 
 # env file
 .env
+
+# cosign key
+cosign.key
+cosign.pub
 
 # Editor/IDE
 # .idea/

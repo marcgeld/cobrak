@@ -56,8 +56,39 @@ func runConfigSet(c *cobra.Command, args []string) error {
 			return fmt.Errorf("invalid value for 'top': must be a number")
 		}
 		settings.Top = topVal
+	case "pressure_thresholds.low":
+		var val float64
+		_, err := fmt.Sscanf(value, "%f", &val)
+		if err != nil {
+			return fmt.Errorf("invalid value for pressure threshold: must be a number")
+		}
+		settings.PressureThresholds.Low = val
+	case "pressure_thresholds.medium":
+		var val float64
+		_, err := fmt.Sscanf(value, "%f", &val)
+		if err != nil {
+			return fmt.Errorf("invalid value for pressure threshold: must be a number")
+		}
+		settings.PressureThresholds.Medium = val
+	case "pressure_thresholds.high":
+		var val float64
+		_, err := fmt.Sscanf(value, "%f", &val)
+		if err != nil {
+			return fmt.Errorf("invalid value for pressure threshold: must be a number")
+		}
+		settings.PressureThresholds.High = val
+	case "pressure_thresholds.saturated":
+		var val float64
+		_, err := fmt.Sscanf(value, "%f", &val)
+		if err != nil {
+			return fmt.Errorf("invalid value for pressure threshold: must be a number")
+		}
+		settings.PressureThresholds.Saturated = val
+	case "color":
+		colorVal := value == "true" || value == "1" || value == "yes"
+		settings.Color = colorVal
 	default:
-		return fmt.Errorf("unknown config key: %s (valid keys: output, namespace, context, top)", key)
+		return fmt.Errorf("unknown config key: %s (valid keys: output, namespace, context, top, color, pressure_thresholds.low, pressure_thresholds.medium, pressure_thresholds.high, pressure_thresholds.saturated)", key)
 	}
 
 	// Save settings
@@ -96,7 +127,17 @@ func runConfigShow(c *cobra.Command, _ []string) error {
 	fmt.Fprintf(c.OutOrStdout(), "namespace: %s (empty = all namespaces)\n", settings.Namespace)
 	fmt.Fprintf(c.OutOrStdout(), "context:   %s (empty = current context)\n", settings.Context)
 	fmt.Fprintf(c.OutOrStdout(), "top:       %d\n", settings.Top)
-	fmt.Fprintf(c.OutOrStdout(), "\nNote: Command-line flags override these settings\n")
+	colorStatus := "enabled"
+	if !settings.Color {
+		colorStatus = "disabled"
+	}
+	fmt.Fprintf(c.OutOrStdout(), "color:     %s (true or false)\n", colorStatus)
+	fmt.Fprintf(c.OutOrStdout(), "\nPressure Thresholds:\n")
+	fmt.Fprintf(c.OutOrStdout(), "  low:       %.1f (0-100)\n", settings.PressureThresholds.Low)
+	fmt.Fprintf(c.OutOrStdout(), "  medium:    %.1f (0-100, must be > low)\n", settings.PressureThresholds.Medium)
+	fmt.Fprintf(c.OutOrStdout(), "  high:      %.1f (0-100, must be > medium)\n", settings.PressureThresholds.High)
+	fmt.Fprintf(c.OutOrStdout(), "  saturated: %.1f (0-100, must be > high)\n", settings.PressureThresholds.Saturated)
+	fmt.Fprintf(c.OutOrStdout(), "\nNote: Command-line flags (like --nocolor) override these settings\n")
 
 	return nil
 }

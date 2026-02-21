@@ -23,6 +23,7 @@ func newResourcesCmd() *cobra.Command {
 
 	addResourceFlags(c)
 
+	c.AddCommand(newResourcesSimpleCmd())
 	c.AddCommand(newResourcesInventoryCmd())
 	c.AddCommand(newResourcesUsageCmd())
 	c.AddCommand(newResourcesDiffCmd())
@@ -244,6 +245,49 @@ func newResourcesSimpleCmd() *cobra.Command {
 		Long:  "Shows a simple one-liner summary of cluster pressure and resource constraints per node and namespace.",
 		RunE:  runResourcesSimple,
 	}
+}
+
+func runResourcesSimple(c *cobra.Command, _ []string) error {
+	kubeconfig, _ := c.Root().PersistentFlags().GetString("kubeconfig")
+	kubeCtx, _ := c.Root().PersistentFlags().GetString("context")
+	namespace, _ := c.Root().PersistentFlags().GetString("namespace")
+
+	// Load configuration for pressure thresholds
+	settings, err := config.LoadSettings()
+	if err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+
+	cfg, err := k8s.NewRestConfig(kubeconfig, kubeCtx)
+	if err != nil {
+		return fmt.Errorf("building rest config: %w", err)
+	}
+
+	client, err := k8s.NewClientFromConfig(cfg)
+	if err != nil {
+		return fmt.Errorf("building k8s client: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	// Convert config thresholds to capacity thresholds
+	thresholds := capacity.PressureThresholds{
+		Low:       settings.PressureThresholds.Low,
+		Medium:    settings.PressureThresholds.Medium,
+		High:      settings.PressureThresholds.High,
+		Saturated: settings.PressureThresholds.Saturated,
+	}
+
+	// Calculate cluster pressure with configured thresholds
+	pressure, err := capacity.CalculatePressureWithThresholds(ctx, client, namespace, thresholds)
+	if err != nil {
+		return fmt.Errorf("calculating pressure: %w", err)
+	}
+
+	// Render and print simple summary
+	summary := output.RenderPressureSimple(pressure)
+	fmt.Fprintf(c.OutOrStdout(), "%s\n", summary)
 
 	return nil
 }

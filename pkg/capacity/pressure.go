@@ -49,6 +49,26 @@ type ClusterPressure struct {
 
 // CalculatePressure analyzes cluster resources and returns pressure status
 func CalculatePressure(ctx context.Context, client kubernetes.Interface, namespace string) (*ClusterPressure, error) {
+	// Use default thresholds
+	thresholds := PressureThresholds{
+		Low:       50.0,
+		Medium:    75.0,
+		High:      90.0,
+		Saturated: 100.0,
+	}
+	return CalculatePressureWithThresholds(ctx, client, namespace, thresholds)
+}
+
+// PressureThresholds defines the pressure level thresholds
+type PressureThresholds struct {
+	Low       float64
+	Medium    float64
+	High      float64
+	Saturated float64
+}
+
+// CalculatePressureWithThresholds analyzes cluster resources with custom thresholds
+func CalculatePressureWithThresholds(ctx context.Context, client kubernetes.Interface, namespace string, thresholds PressureThresholds) (*ClusterPressure, error) {
 	pressure := &ClusterPressure{
 		NodePressures:      []NodePressure{},
 		NamespacePressures: []NamespacePressure{},
@@ -68,7 +88,7 @@ func CalculatePressure(ctx context.Context, client kubernetes.Interface, namespa
 
 	// Calculate per-node pressure
 	for _, node := range nodes.Items {
-		nodePressure := calculateNodePressure(&node, pods)
+		nodePressure := calculateNodePressureWithThresholds(&node, pods, thresholds)
 		pressure.NodePressures = append(pressure.NodePressures, nodePressure)
 	}
 
@@ -116,10 +136,10 @@ func CalculatePressure(ctx context.Context, client kubernetes.Interface, namespa
 		}
 
 		// Set status strings
-		if nsPressure.CPUPercent >= 80 {
+		if nsPressure.CPUPercent >= thresholds.High {
 			nsPressure.CPUStatus = fmt.Sprintf("CPU %.0f%%", nsPressure.CPUPercent)
 		}
-		if nsPressure.MemPercent >= 80 {
+		if nsPressure.MemPercent >= thresholds.High {
 			nsPressure.MemStatus = fmt.Sprintf("Memory %.0f%%", nsPressure.MemPercent)
 		}
 
@@ -170,6 +190,17 @@ func CalculatePressure(ctx context.Context, client kubernetes.Interface, namespa
 
 // calculateNodePressure calculates pressure for a single node based on requested resources
 func calculateNodePressure(node *corev1.Node, pods *corev1.PodList) NodePressure {
+	thresholds := PressureThresholds{
+		Low:       50.0,
+		Medium:    75.0,
+		High:      90.0,
+		Saturated: 100.0,
+	}
+	return calculateNodePressureWithThresholds(node, pods, thresholds)
+}
+
+// calculateNodePressureWithThresholds calculates pressure for a single node with custom thresholds
+func calculateNodePressureWithThresholds(node *corev1.Node, pods *corev1.PodList, thresholds PressureThresholds) NodePressure {
 	np := NodePressure{
 		NodeName: node.Name,
 	}
@@ -201,28 +232,42 @@ func calculateNodePressure(node *corev1.Node, pods *corev1.PodList) NodePressure
 	// Calculate CPU utilization and pressure
 	if cpuAllocatable != nil && cpuAllocatable.MilliValue() > 0 {
 		np.CPUUtilization = (float64(nodeCPURequest.MilliValue()) / float64(cpuAllocatable.MilliValue())) * 100
-		np.CPUPressure = calculatePressureLevel(np.CPUUtilization)
+		np.CPUPressure = calculatePressureLevelWithThresholds(np.CPUUtilization, thresholds)
 	}
 
 	// Calculate Memory utilization and pressure
 	if memAllocatable != nil && memAllocatable.Value() > 0 {
 		np.MemUtilization = (float64(nodeMemRequest.Value()) / float64(memAllocatable.Value())) * 100
-		np.MemPressure = calculatePressureLevel(np.MemUtilization)
+		np.MemPressure = calculatePressureLevelWithThresholds(np.MemUtilization, thresholds)
 	}
 
 	return np
 }
 
-// calculatePressureLevel determines pressure level based on utilization percentage
+// calculatePressureLevel determines pressure level based on utilization percentage using default thresholds
 func calculatePressureLevel(utilization float64) PressureLevel {
-	if utilization >= 90 {
+	thresholds := PressureThresholds{
+		Low:       50.0,
+		Medium:    75.0,
+		High:      90.0,
+		Saturated: 100.0,
+	}
+	return calculatePressureLevelWithThresholds(utilization, thresholds)
+}
+
+// calculatePressureLevelWithThresholds determines pressure level based on utilization and custom thresholds
+func calculatePressureLevelWithThresholds(utilization float64, thresholds PressureThresholds) PressureLevel {
+	if utilization >= thresholds.Saturated {
 		return PressureSaturated
 	}
-	if utilization >= 75 {
+	if utilization >= thresholds.High {
 		return PressureHigh
 	}
-	if utilization >= 50 {
+	if utilization >= thresholds.Medium {
 		return PressureMedium
+	}
+	if utilization >= thresholds.Low {
+		return PressureLow
 	}
 	return PressureLow
 }
