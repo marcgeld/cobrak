@@ -41,8 +41,10 @@ func runNodeInfo(c *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
 	}
+
+	// Set global color state
 	colorEnabled := settings.Color && !nocolor
-	_ = output.NewColorProvider(colorEnabled) // Initialize for potential future use
+	output.SetGlobalColorEnabled(colorEnabled)
 
 	cfg, err := k8s.NewRestConfig(kubeconfig, kubeCtx)
 	if err != nil {

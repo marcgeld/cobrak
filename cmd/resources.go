@@ -49,8 +49,10 @@ func runResources(c *cobra.Command, _ []string) error {
 	kubeconfig, _ := c.Root().PersistentFlags().GetString("kubeconfig")
 	kubeCtx, _ := c.Root().PersistentFlags().GetString("context")
 	nocolor, _ := c.Root().PersistentFlags().GetBool("nocolor")
+
+	// Set global color state (affects all output)
 	colorEnabled := settings.Color && !nocolor
-	_ = output.NewColorProvider(colorEnabled) // Initialize for potential future use
+	output.SetGlobalColorEnabled(colorEnabled)
 
 	// Get resource-specific flags
 	flagNamespace, _ := c.Flags().GetString("namespace")
@@ -253,13 +255,18 @@ func newResourcesSimpleCmd() *cobra.Command {
 func runResourcesSimple(c *cobra.Command, _ []string) error {
 	kubeconfig, _ := c.Root().PersistentFlags().GetString("kubeconfig")
 	kubeCtx, _ := c.Root().PersistentFlags().GetString("context")
+	nocolor, _ := c.Root().PersistentFlags().GetBool("nocolor")
 	namespace, _ := c.Root().PersistentFlags().GetString("namespace")
 
-	// Load configuration for pressure thresholds
+	// Load configuration for pressure thresholds and color
 	settings, err := config.LoadSettings()
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
 	}
+
+	// Set color state (this affects all color output globally)
+	colorEnabled := settings.Color && !nocolor
+	output.SetGlobalColorEnabled(colorEnabled)
 
 	cfg, err := k8s.NewRestConfig(kubeconfig, kubeCtx)
 	if err != nil {

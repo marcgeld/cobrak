@@ -26,7 +26,10 @@ func newCapacityCmd(kubeconfigFlag *string) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("loading config: %w", err)
 			}
+
+			// Set global color state
 			colorEnabled := settings.Color && !nocolor
+			output.SetGlobalColorEnabled(colorEnabled)
 
 			cp := output.NewColorProvider(colorEnabled)
 

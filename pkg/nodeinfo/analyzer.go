@@ -213,39 +213,57 @@ func analyzeMemoryPressure(node *corev1.Node) MemoryPressure {
 		Pressure: "UNKNOWN",
 	}
 
-	// Get memory from node status
-	if memory, ok := node.Status.Allocatable[corev1.ResourceMemory]; ok {
-		memPressure.Total = memory.Value()
-	}
+	// Get total memory from node status
+	memPressure.Total = getNodeMemoryTotal(node)
 
 	// Check for memory pressure conditions
+	memPressure.Pressure = getMemoryPressureStatus(node)
+
+	// Calculate memory utilization ratio
+	memPressure.UtilizationRatio = calculateMemoryUtilization(node, memPressure.Total)
+
+	return memPressure
+}
+
+// getNodeMemoryTotal extracts total memory from node status
+func getNodeMemoryTotal(node *corev1.Node) int64 {
+	if memory, ok := node.Status.Allocatable[corev1.ResourceMemory]; ok {
+		return memory.Value()
+	}
+	return 0
+}
+
+// getMemoryPressureStatus determines memory pressure status from node conditions
+func getMemoryPressureStatus(node *corev1.Node) string {
 	for _, condition := range node.Status.Conditions {
 		if condition.Type == corev1.NodeMemoryPressure {
 			if condition.Status == corev1.ConditionTrue {
-				memPressure.Pressure = "HIGH"
-			} else {
-				memPressure.Pressure = "LOW"
+				return "HIGH"
 			}
+			return "LOW"
 		}
 	}
+	// Default to LOW if no explicit pressure condition found
+	return "LOW"
+}
 
-	// If we don't have explicit pressure, default to LOW
-	if memPressure.Pressure == "UNKNOWN" {
-		memPressure.Pressure = "LOW"
+// calculateMemoryUtilization calculates memory utilization ratio
+func calculateMemoryUtilization(node *corev1.Node, totalMemory int64) float64 {
+	if totalMemory <= 0 || node.Status.Allocatable == nil {
+		return 0.0
 	}
 
-	// Calculate utilization from node status if available
-	// This is a simplified calculation
-	if memPressure.Total > 0 && node.Status.Allocatable != nil {
-		if allocatable, ok := node.Status.Allocatable[corev1.ResourceMemory]; ok {
-			allocated := memPressure.Total - allocatable.Value()
-			if allocated > 0 {
-				memPressure.UtilizationRatio = float64(allocated) / float64(memPressure.Total)
-			}
-		}
+	allocatable, ok := node.Status.Allocatable[corev1.ResourceMemory]
+	if !ok {
+		return 0.0
 	}
 
-	return memPressure
+	allocated := totalMemory - allocatable.Value()
+	if allocated <= 0 {
+		return 0.0
+	}
+
+	return float64(allocated) / float64(totalMemory)
 }
 
 // analyzeFilesystemLatency analyzes filesystem information

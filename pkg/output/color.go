@@ -8,6 +8,25 @@ import (
 	"github.com/fatih/color"
 )
 
+// Global color control
+var globalColorEnabled = true
+
+func init() {
+	// Initialize color support based on terminal capabilities
+	SetGlobalColorEnabled(true) // Default to enabled, commands will override if needed
+}
+
+// SetGlobalColorEnabled sets the global color enabled state
+func SetGlobalColorEnabled(enabled bool) {
+	globalColorEnabled = enabled && isColorSupported()
+	color.NoColor = !globalColorEnabled
+}
+
+// IsGlobalColorEnabled returns whether colors are globally enabled
+func IsGlobalColorEnabled() bool {
+	return globalColorEnabled
+}
+
 // ColorProvider handles color output based on configuration
 type ColorProvider struct {
 	enabled bool
@@ -15,21 +34,36 @@ type ColorProvider struct {
 
 // NewColorProvider creates a new ColorProvider
 func NewColorProvider(colorEnabled bool) *ColorProvider {
-	return &ColorProvider{
+	cp := &ColorProvider{
 		enabled: colorEnabled && isColorSupported(),
 	}
+	// Also set global color state
+	SetGlobalColorEnabled(colorEnabled)
+	return cp
 }
 
 // isColorSupported checks if the terminal supports colors
 func isColorSupported() bool {
-	// Check if output is a terminal
-	if fileInfo, _ := os.Stdout.Stat(); fileInfo == nil {
+	// Check for NO_COLOR environment variable (highest priority)
+	if os.Getenv("NO_COLOR") != "" {
 		return false
 	}
 
-	// Check for NO_COLOR environment variable
-	if os.Getenv("NO_COLOR") != "" {
+	// Check for CLICOLOR_FORCE (force colors)
+	if os.Getenv("CLICOLOR_FORCE") != "" && os.Getenv("CLICOLOR_FORCE") != "0" {
+		return true
+	}
+
+	// Check if output is a terminal (using mode check)
+	fileInfo, err := os.Stdout.Stat()
+	if err != nil {
 		return false
+	}
+
+	// Check if stdout is a character device (terminal)
+	// On Unix-like systems, terminals have mode with ModeCharDevice bit set
+	if (fileInfo.Mode() & os.ModeCharDevice) == 0 {
+		return false // Not a terminal, likely piped
 	}
 
 	// Check for TERM environment variable

@@ -23,7 +23,7 @@ func GetVersion() (string, string, string) {
 	return version, commit, date
 }
 
-func newRootCmd() *cobra.Command {
+func NewRootCmd() *cobra.Command {
 	kubeconfig := ""
 
 	root := &cobra.Command{
@@ -45,12 +45,7 @@ func newRootCmd() *cobra.Command {
 	return root
 }
 
-// NewRootCmd returns the root command for cobrak.
-func NewRootCmd() *cobra.Command {
-	return newRootCmd()
-}
-
 // Execute runs the root command.
 func Execute() error {
-	return newRootCmd().Execute()
+	return NewRootCmd().Execute()
 }

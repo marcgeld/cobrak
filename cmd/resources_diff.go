@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/marcgeld/cobrak/pkg/config"
 	"github.com/marcgeld/cobrak/pkg/k8s"
 	"github.com/marcgeld/cobrak/pkg/output"
 	"github.com/marcgeld/cobrak/pkg/resources"
@@ -30,8 +31,17 @@ Requires metrics-server to be installed in the cluster.`,
 func runResourcesDiff(c *cobra.Command, _ []string) error {
 	kubeconfig, _ := c.Root().PersistentFlags().GetString("kubeconfig")
 	kubeCtx, _ := c.Root().PersistentFlags().GetString("context")
+	nocolor, _ := c.Root().PersistentFlags().GetBool("nocolor")
 	namespace, _ := c.Flags().GetString("namespace")
 	top, _ := c.Flags().GetInt("top")
+
+	// Load configuration and set color
+	settings, err := config.LoadSettings()
+	if err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+	colorEnabled := settings.Color && !nocolor
+	output.SetGlobalColorEnabled(colorEnabled)
 
 	cfg, err := k8s.NewRestConfig(kubeconfig, kubeCtx)
 	if err != nil {

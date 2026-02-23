@@ -120,34 +120,57 @@ func RenderPolicySummary(policies []resources.PolicySummary) string {
 	return strings.TrimRight(sb.String(), "\n")
 }
 
-// RenderPressureSimple renders a simple pressure summary.
+// RenderPressureSimple renders a simple pressure summary with colors.
 func RenderPressureSimple(pressure *Pressure) string {
 	var sb strings.Builder
 
-	// Cluster overall pressure
-	sb.WriteString(fmt.Sprintf("Cluster Pressure: %s\n", pressure.Overall))
+	// Cluster overall pressure with color
+	pressureText := colorizePressureLevel(string(pressure.Overall), pressure.Overall)
+	sb.WriteString(fmt.Sprintf("Cluster Pressure: %s\n", pressureText))
 
 	// Node pressures
 	for _, np := range pressure.NodePressures {
 		if np.CPUPressure != "LOW" {
-			sb.WriteString(fmt.Sprintf("Node %s: CPU %s (%.0f%%)\n", np.NodeName, np.CPUPressure, np.CPUUtilization))
+			cpuPressure := colorizePressureLevel(string(np.CPUPressure), np.CPUPressure)
+			nodeName := Header(np.NodeName)
+			sb.WriteString(fmt.Sprintf("Node %s: CPU %s (%.0f%%)\n", nodeName, cpuPressure, np.CPUUtilization))
 		}
 		if np.MemPressure != "LOW" {
-			sb.WriteString(fmt.Sprintf("Node %s: Memory %s (%.0f%%)\n", np.NodeName, np.MemPressure, np.MemUtilization))
+			memPressure := colorizePressureLevel(string(np.MemPressure), np.MemPressure)
+			nodeName := Header(np.NodeName)
+			sb.WriteString(fmt.Sprintf("Node %s: Memory %s (%.0f%%)\n", nodeName, memPressure, np.MemUtilization))
 		}
 	}
 
-	// Namespace pressures - only show if > 80%
+	// Namespace pressures - only show if >= 80%
 	for _, nsp := range pressure.NamespacePressures {
 		if nsp.CPUPercent >= 80 {
-			sb.WriteString(fmt.Sprintf("Namespace %s: CPU %.0f%% requested\n", nsp.Namespace, nsp.CPUPercent))
+			nsName := Info(nsp.Namespace)
+			sb.WriteString(fmt.Sprintf("Namespace %s: CPU %.0f%% requested\n", nsName, nsp.CPUPercent))
 		}
 		if nsp.MemPercent >= 80 {
-			sb.WriteString(fmt.Sprintf("Namespace %s: Memory %.0f%% requested\n", nsp.Namespace, nsp.MemPercent))
+			nsName := Info(nsp.Namespace)
+			sb.WriteString(fmt.Sprintf("Namespace %s: Memory %.0f%% requested\n", nsName, nsp.MemPercent))
 		}
 	}
 
 	return strings.TrimRight(sb.String(), "\n")
+}
+
+// colorizePressureLevel applies appropriate color to pressure level text
+func colorizePressureLevel(text string, level capacity.PressureLevel) string {
+	switch level {
+	case capacity.PressureLow:
+		return PressureLowColor(text)
+	case capacity.PressureMedium:
+		return PressureMediumColor(text)
+	case capacity.PressureHigh:
+		return PressureHighColor(text)
+	case capacity.PressureSaturated:
+		return PressureSaturatedColor(text)
+	default:
+		return text
+	}
 }
 
 // RenderUsageTable formats a table of container usages.
