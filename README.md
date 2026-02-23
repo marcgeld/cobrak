@@ -2,6 +2,7 @@
 
 [![Go Version](https://img.shields.io/badge/go-1.25.0+-blue.svg)](https://golang.org/doc/devel/release)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![CI](https://github.com/marcgeld/cobrak/workflows/CI/badge.svg)](https://github.com/marcgeld/cobrak/actions/workflows/ci.yml)
 [![Build Status](https://img.shields.io/badge/status-stable-brightgreen.svg)](#)
 
 A modular, lightweight, and fast analytical CLI tool for inspecting and analyzing Kubernetes cluster state, resource usage, node health, and capacity planning.
