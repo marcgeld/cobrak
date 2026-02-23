@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/spf13/cobra"
 	"github.com/marcgeld/cobrak/pkg/k8s"
 	"github.com/marcgeld/cobrak/pkg/output"
 	"github.com/marcgeld/cobrak/pkg/resources"
+	"github.com/spf13/cobra"
 )
 
 func newResourcesUsageCmd() *cobra.Command {

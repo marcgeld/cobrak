@@ -48,6 +48,9 @@ func runResources(c *cobra.Command, _ []string) error {
 	// Get flag values (may be empty/zero)
 	kubeconfig, _ := c.Root().PersistentFlags().GetString("kubeconfig")
 	kubeCtx, _ := c.Root().PersistentFlags().GetString("context")
+	nocolor, _ := c.Root().PersistentFlags().GetBool("nocolor")
+	colorEnabled := settings.Color && !nocolor
+	_ = output.NewColorProvider(colorEnabled) // Initialize for potential future use
 
 	// Get resource-specific flags
 	flagNamespace, _ := c.Flags().GetString("namespace")

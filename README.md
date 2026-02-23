@@ -72,9 +72,10 @@ go install
 ./cobrak --help
 ./cobrak resources --help
 ./cobrak nodeinfo --help
+./cobrak capacity --help
 ```
 
-## 📚 Commands
+## 📚 Commands Reference
 
 ### `cobrak resources`
 
@@ -104,9 +105,14 @@ Analyze pod resources and cluster capacity.
 
 # JSON output
 ./cobrak resources --output=json
+
+# YAML output
+./cobrak resources --output=yaml
 ```
 
-#### Output Example (default):
+#### Output Examples
+
+**Default format:**
 ```
 === CLUSTER CAPACITY SUMMARY ===
 CPU Capacity:          12
@@ -130,7 +136,7 @@ Total CPU Requests:    1700m
 Total CPU Limits:      3700m
 ```
 
-#### Output Example (simple):
+**Simple format:**
 ```
 Cluster Pressure: LOW
 Node worker-1: CPU SATURATED (95%)
@@ -160,7 +166,9 @@ Get detailed system information about nodes.
 ./cobrak nodeinfo --node=worker-1 --health
 ```
 
-#### Output Example (detailed):
+#### Output Examples
+
+**Detailed format:**
 ```
 Node: worker-1
   OS: linux
@@ -190,7 +198,7 @@ Node: worker-1
     Type: AWS EC2
 ```
 
-#### Output Example (compact):
+**Compact format:**
 ```
 NODE | OS | ARCH | CPU | GPU | MEM | RUNTIME | VIRTUALIZATION
 worker-1 | linux | amd64 | 8c | Yes(1) | MEDIUM | containerd | AWS EC2
@@ -207,6 +215,14 @@ Show CPU and memory capacity for each node.
 
 # With specific context
 ./cobrak capacity --context=production-cluster
+```
+
+### `cobrak version`
+
+Show version information.
+
+```bash
+./cobrak version
 ```
 
 ## 🎯 Use Cases
@@ -244,17 +260,145 @@ Show CPU and memory capacity for each node.
 ./cobrak nodeinfo --health
 ```
 
-## 🔧 Requirements
+## 🔧 Configuration
+
+cobrak supports configuration through `~/.cobrak/settings.toml` to set default values for all commands.
+
+### Configuration File
+
+Location: `~/.cobrak/settings.toml`
+
+Default settings:
+```toml
+output = "text"
+namespace = ""
+context = ""
+top = 20
+color = true
+
+[pressure_thresholds]
+low = 50.0
+medium = 75.0
+high = 90.0
+saturated = 100.0
+```
+
+### Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `output` | string | `text` | Output format: `text`, `json`, or `yaml` |
+| `namespace` | string | `""` | Default namespace (empty = all namespaces) |
+| `context` | string | `""` | Default Kubernetes context to use |
+| `top` | integer | `20` | Default number of top offenders to show |
+| `color` | boolean | `true` | Enable colored output (disable with `--nocolor`) |
+
+### Pressure Thresholds
+
+Configure resource pressure levels (percentages):
+
+```toml
+[pressure_thresholds]
+low = 50.0          # Resources are Low when usage is 0-50%
+medium = 75.0       # Medium when 50-75%
+high = 90.0         # High when 75-90%
+saturated = 100.0   # Saturated when 90-100%
+```
+
+**Validation rules:**
+- All values must be between 0 and 100
+- Must follow strict ordering: `low < medium < high < saturated`
+
+### Setting Configuration Values
+
+```bash
+# Set default output to JSON
+./cobrak config set output json
+
+# Set default namespace
+./cobrak config set namespace kube-system
+
+# Set default context
+./cobrak config set context my-cluster
+
+# Set top value
+./cobrak config set top 50
+```
+
+### Flag Override Precedence
+
+Command-line flags always take precedence over configuration file settings:
+
+```bash
+# Configuration has output=json, but this uses text
+./cobrak resources --output=text
+
+# Configuration has namespace=kube-system, but this uses production
+./cobrak resources --namespace=production
+
+# Disable colors via flag (overrides config)
+./cobrak resources --nocolor
+```
+
+## 📤 Output Formats
+
+cobrak supports multiple output formats for easy integration and automation:
+
+### Text Format (Default)
+```bash
+./cobrak resources --output=text
+```
+Human-readable table format with clear sections and summaries.
+
+### JSON Format
+```bash
+./cobrak resources --output=json
+```
+Structured JSON output perfect for automation and scripting.
+
+**Example with jq:**
+```bash
+# Get high-memory pods
+./cobrak resources --output=json | jq '.pod_details[] | select(.mem_request | endswith("Gi"))'
+
+# Count pods per namespace
+./cobrak resources --output=json | jq '.pod_details | group_by(.namespace) | map({namespace: .[0].namespace, count: length})'
+```
+
+### YAML Format
+```bash
+./cobrak resources --output=yaml
+```
+YAML format ideal for configuration management and GitOps workflows.
+
+## 🎨 Color Support
+
+Colors are **enabled by default** when the terminal supports it. To disable:
+
+```bash
+# Disable colors via flag
+./cobrak resources --nocolor
+
+# Disable colors permanently in config
+# Set in ~/.cobrak/settings.toml
+color = false
+```
+
+Environment variable support:
+```bash
+NO_COLOR=1 ./cobrak resources  # Colors disabled
+```
+
+## 🔑 Requirements
 
 - **Go 1.25.0+** - To build from source
 - **Kubernetes cluster 1.24+** - Target cluster
 - **kubectl** - Configured kubeconfig
 - **metrics-server** (optional) - For `usage` and `diff` commands
 
-## 📋 Configuration
+## 📋 Kubeconfig & Context
 
-### Kubeconfig
-cobrak respects the standard Kubernetes kubeconfig configuration:
+cobrak respects standard Kubernetes kubeconfig configuration:
 
 ```bash
 # Use specific kubeconfig
@@ -268,18 +412,6 @@ export KUBECONFIG=$HOME/.kube/config
 ./cobrak resources --context=my-cluster
 ```
 
-### Filtering
-```bash
-# Analyze specific namespace
-./cobrak resources --namespace=kube-system
-
-# Show all namespaces (default)
-./cobrak resources --all-namespaces
-
-# Show top N resources
-./cobrak resources --top=50
-```
-
 ## 🏗️ Architecture
 
 cobrak is organized into modular packages:
@@ -287,68 +419,20 @@ cobrak is organized into modular packages:
 ```
 pkg/
 ├── capacity/        # Node capacity analysis and pressure calculation
-├── k8s/            # Kubernetes API client utilities
-├── kubeconfig/     # Kubeconfig resolution
-├── nodeinfo/       # Node system information
-├── output/         # Output rendering and formatting
-└── resources/      # Pod resources, inventory, usage, and diff analysis
+├── config/          # Configuration management
+├── k8s/             # Kubernetes API client utilities
+├── kubeconfig/      # Kubeconfig resolution
+├── nodeinfo/        # Node system information
+├── output/          # Output rendering and formatting
+└── resources/       # Pod resources, inventory, usage, and diff analysis
 
 cmd/
-├── root.go         # Root command
-├── capacity.go     # Capacity command
-├── nodeinfo.go     # Node info command
-└── resources.go    # Resources command and subcommands
-```
-
-## 📤 Output Formats
-
-cobrak supports **multiple output formats** for easy integration and automation:
-
-### Text Format (Default)
-```bash
-./cobrak resources --output=text
-```
-Human-readable table format with clear sections and summaries.
-
-### JSON Format
-```bash
-./cobrak resources --output=json
-```
-Structured JSON output perfect for automation, scripting, and tool integration.
-
-### YAML Format
-```bash
-./cobrak resources --output=yaml
-```
-YAML format ideal for configuration management and GitOps workflows.
-
-**Example with jq filtering:**
-```bash
-# Get high-memory pods
-./cobrak resources --output=json | jq '.pod_details[] | select(.mem_request | endswith("Gi"))'
-
-# Count pods per namespace
-./cobrak resources --output=json | jq '.pod_details | group_by(.namespace) | map({namespace: .[0].namespace, count: length})'
-```
-
-## 🏗️ Architecture
-
-cobrak is organized into modular packages:
-
-```
-pkg/
-├── capacity/        # Node capacity analysis and pressure calculation
-├── k8s/            # Kubernetes API client utilities
-├── kubeconfig/     # Kubeconfig resolution
-├── nodeinfo/       # Node system information
-├── output/         # Output rendering and formatting
-└── resources/      # Pod resources, inventory, usage, and diff analysis
-
-cmd/
-├── root.go         # Root command
-├── capacity.go     # Capacity command
-├── nodeinfo.go     # Node info command
-└── resources.go    # Resources command and subcommands
+├── root.go          # Root command setup
+├── capacity.go      # Capacity command
+├── config.go        # Config command
+├── nodeinfo.go      # Node info command
+├── resources.go     # Resources command and subcommands
+└── version.go       # Version command
 ```
 
 ## 🧪 Testing
@@ -364,11 +448,7 @@ go test -cover ./...
 go test -v ./pkg/nodeinfo/...
 ```
 
-Current test coverage includes:
-- 21+ unit tests across all packages
-- Mock Kubernetes client tests
-- Output formatting tests
-- Node analysis tests
+Current test coverage: 37+ unit tests across all packages
 
 ## 🐛 Troubleshooting
 
@@ -433,8 +513,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 For issues, feature requests, or questions:
 1. Open an [issue](https://github.com/marcgeld/cobrak/issues)
 2. Check existing [discussions](https://github.com/marcgeld/cobrak/discussions)
-3. Review the [documentation](#-commands)
+3. Review the [documentation](#-commands-reference)
 
 ---
 
-Made with ❤️for Kubernetes cluster operators
+Made with ❤️ for Kubernetes cluster operators
+

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sort"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -61,13 +63,28 @@ func Analyze(ctx context.Context, client kubernetes.Interface) ([]NodeCapacity, 
 
 // AnalyzeSummary aggregates all node capacity and pod requests/limits into a cluster summary.
 func AnalyzeSummary(ctx context.Context, client kubernetes.Interface, namespace string) (*ClusterCapacitySummary, error) {
-	// Get node capacities
+	summary := newEmptySummary()
+
+	// Get and sum node capacities
 	nodes, err := client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("listing nodes: %w", err)
 	}
+	sumNodeCapacities(summary, nodes.Items)
 
-	summary := &ClusterCapacitySummary{
+	// Get and sum pod requests/limits
+	pods, err := client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("listing pods: %w", err)
+	}
+	sumPodResources(summary, pods.Items)
+
+	return summary, nil
+}
+
+// newEmptySummary creates a ClusterCapacitySummary with all quantities initialized to zero.
+func newEmptySummary() *ClusterCapacitySummary {
+	return &ClusterCapacitySummary{
 		TotalCPUCapacity:    *resource.NewQuantity(0, resource.DecimalSI),
 		TotalCPUAllocatable: *resource.NewQuantity(0, resource.DecimalSI),
 		TotalMemCapacity:    *resource.NewQuantity(0, resource.BinarySI),
@@ -77,59 +94,44 @@ func AnalyzeSummary(ctx context.Context, client kubernetes.Interface, namespace 
 		TotalMemRequests:    *resource.NewQuantity(0, resource.BinarySI),
 		TotalMemLimits:      *resource.NewQuantity(0, resource.BinarySI),
 	}
+}
 
-	// Sum node capacities
-	for _, node := range nodes.Items {
+// sumNodeCapacities aggregates capacity from all nodes into the summary.
+func sumNodeCapacities(summary *ClusterCapacitySummary, nodes []corev1.Node) {
+	for _, node := range nodes {
 		summary.TotalCPUCapacity.Add(*node.Status.Capacity.Cpu())
 		summary.TotalCPUAllocatable.Add(*node.Status.Allocatable.Cpu())
 		summary.TotalMemCapacity.Add(*node.Status.Capacity.Memory())
 		summary.TotalMemAllocatable.Add(*node.Status.Allocatable.Memory())
 	}
+}
 
-	// Get pod requests/limits
-	pods, err := client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("listing pods: %w", err)
+// sumPodResources aggregates requests and limits from all containers in all pods.
+func sumPodResources(summary *ClusterCapacitySummary, pods []corev1.Pod) {
+	for _, pod := range pods {
+		sumContainerResources(summary, pod.Spec.Containers)
+		sumContainerResources(summary, pod.Spec.InitContainers)
 	}
+}
 
-	for _, pod := range pods.Items {
-		for _, c := range pod.Spec.Containers {
-			if c.Resources.Requests != nil {
-				if cpuReq, ok := c.Resources.Requests[corev1.ResourceCPU]; ok {
-					summary.TotalCPURequests.Add(cpuReq)
-				}
-				if memReq, ok := c.Resources.Requests[corev1.ResourceMemory]; ok {
-					summary.TotalMemRequests.Add(memReq)
-				}
+// sumContainerResources aggregates requests and limits from a slice of containers.
+func sumContainerResources(summary *ClusterCapacitySummary, containers []corev1.Container) {
+	for _, c := range containers {
+		if c.Resources.Requests != nil {
+			if cpuReq, ok := c.Resources.Requests[corev1.ResourceCPU]; ok {
+				summary.TotalCPURequests.Add(cpuReq)
 			}
-			if c.Resources.Limits != nil {
-				if cpuLim, ok := c.Resources.Limits[corev1.ResourceCPU]; ok {
-					summary.TotalCPULimits.Add(cpuLim)
-				}
-				if memLim, ok := c.Resources.Limits[corev1.ResourceMemory]; ok {
-					summary.TotalMemLimits.Add(memLim)
-				}
+			if memReq, ok := c.Resources.Requests[corev1.ResourceMemory]; ok {
+				summary.TotalMemRequests.Add(memReq)
 			}
 		}
-		for _, c := range pod.Spec.InitContainers {
-			if c.Resources.Requests != nil {
-				if cpuReq, ok := c.Resources.Requests[corev1.ResourceCPU]; ok {
-					summary.TotalCPURequests.Add(cpuReq)
-				}
-				if memReq, ok := c.Resources.Requests[corev1.ResourceMemory]; ok {
-					summary.TotalMemRequests.Add(memReq)
-				}
+		if c.Resources.Limits != nil {
+			if cpuLim, ok := c.Resources.Limits[corev1.ResourceCPU]; ok {
+				summary.TotalCPULimits.Add(cpuLim)
 			}
-			if c.Resources.Limits != nil {
-				if cpuLim, ok := c.Resources.Limits[corev1.ResourceCPU]; ok {
-					summary.TotalCPULimits.Add(cpuLim)
-				}
-				if memLim, ok := c.Resources.Limits[corev1.ResourceMemory]; ok {
-					summary.TotalMemLimits.Add(memLim)
-				}
+			if memLim, ok := c.Resources.Limits[corev1.ResourceMemory]; ok {
+				summary.TotalMemLimits.Add(memLim)
 			}
 		}
 	}
-
-	return summary, nil
 }

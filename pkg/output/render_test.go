@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/api/resource"
 	"github.com/marcgeld/cobrak/pkg/resources"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 func TestRenderNamespaceInventoryTable_Empty(t *testing.T) {

@@ -98,11 +98,20 @@ medium = 60.0
 		t.Fatalf("failed to write test TOML file: %v", err)
 	}
 
-	// Load settings - this should fail validation because high and saturated are using defaults
-	// which violates the ordering constraint
-	_, err := LoadSettings()
-	if err == nil {
-		t.Errorf("expected LoadSettings to fail with partial pressure thresholds, but it succeeded")
+	// Load settings - partial thresholds are OK because unspecified values use defaults
+	// The merged result (low=30, medium=60, high=90 (default), saturated=100 (default)) is valid
+	settings, err := LoadSettings()
+	if err != nil {
+		t.Errorf("expected LoadSettings to succeed with partial pressure thresholds, but got error: %v", err)
+	}
+	if settings.Output != "yaml" {
+		t.Errorf("expected output to be 'yaml', got %s", settings.Output)
+	}
+	if settings.PressureThresholds.Low != 30.0 {
+		t.Errorf("expected Low to be 30.0, got %.1f", settings.PressureThresholds.Low)
+	}
+	if settings.PressureThresholds.Medium != 60.0 {
+		t.Errorf("expected Medium to be 60.0, got %.1f", settings.PressureThresholds.Medium)
 	}
 }
 

@@ -6,8 +6,10 @@ import (
 	"sort"
 	"time"
 
+	"github.com/marcgeld/cobrak/pkg/config"
 	"github.com/marcgeld/cobrak/pkg/k8s"
 	"github.com/marcgeld/cobrak/pkg/nodeinfo"
+	"github.com/marcgeld/cobrak/pkg/output"
 	"github.com/spf13/cobra"
 )
 
@@ -29,9 +31,18 @@ func newNodeInfoCmd() *cobra.Command {
 func runNodeInfo(c *cobra.Command, _ []string) error {
 	kubeconfig, _ := c.Root().PersistentFlags().GetString("kubeconfig")
 	kubeCtx, _ := c.Root().PersistentFlags().GetString("context")
+	nocolor, _ := c.Root().PersistentFlags().GetBool("nocolor")
 	nodeName, _ := c.Flags().GetString("node")
 	compact, _ := c.Flags().GetBool("compact")
 	healthOnly, _ := c.Flags().GetBool("health")
+
+	// Load settings and merge with flags
+	settings, err := config.LoadSettings()
+	if err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+	colorEnabled := settings.Color && !nocolor
+	_ = output.NewColorProvider(colorEnabled) // Initialize for potential future use
 
 	cfg, err := k8s.NewRestConfig(kubeconfig, kubeCtx)
 	if err != nil {

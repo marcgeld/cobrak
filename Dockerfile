@@ -47,5 +47,5 @@ LABELS \
     org.opencontainers.image.description="Kubernetes cluster analysis CLI" \
     org.opencontainers.image.url="https://github.com/marcgeld/cobrak" \
     org.opencontainers.image.source="https://github.com/marcgeld/cobrak" \
-    org.opencontainers.image.vendor="Marcus Geld"
+    org.opencontainers.image.vendor="Marcus Gelderman" \
 

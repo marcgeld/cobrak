@@ -7,8 +7,9 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/marcgeld/cobrak/pkg/capacity"
+	"github.com/marcgeld/cobrak/pkg/config"
 	"github.com/marcgeld/cobrak/pkg/k8s"
-	"github.com/marcgeld/cobrak/pkg/kubeconfig"
+	"github.com/marcgeld/cobrak/pkg/output"
 )
 
 func newCapacityCmd(kubeconfigFlag *string) *cobra.Command {
@@ -18,6 +19,16 @@ func newCapacityCmd(kubeconfigFlag *string) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			kubeconfig, _ := cmd.Root().PersistentFlags().GetString("kubeconfig")
 			kubeCtx, _ := cmd.Root().PersistentFlags().GetString("context")
+			nocolor, _ := cmd.Root().PersistentFlags().GetBool("nocolor")
+
+			// Load settings and merge with flags
+			settings, err := config.LoadSettings()
+			if err != nil {
+				return fmt.Errorf("loading config: %w", err)
+			}
+			colorEnabled := settings.Color && !nocolor
+
+			cp := output.NewColorProvider(colorEnabled)
 
 			cfg, err := k8s.NewRestConfig(kubeconfig, kubeCtx)
 			if err != nil {
@@ -35,7 +46,8 @@ func newCapacityCmd(kubeconfigFlag *string) *cobra.Command {
 			}
 
 			for _, n := range nodes {
-				fmt.Fprintf(cmd.OutOrStdout(), "Node: %s\n", n.Name)
+				nodeName := cp.Colorize(n.Name, output.Header)
+				fmt.Fprintf(cmd.OutOrStdout(), "Node: %s\n", nodeName)
 				fmt.Fprintf(cmd.OutOrStdout(), "CPU: %s alloc / %s cap\n",
 					n.CPUAllocatable.String(), n.CPUCapacity.String())
 				fmt.Fprintf(cmd.OutOrStdout(), "Memory: %s alloc / %s cap\n\n",

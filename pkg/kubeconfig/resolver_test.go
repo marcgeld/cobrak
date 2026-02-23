@@ -31,54 +31,54 @@ func TestResolve(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
-		flagPath   string
-		env        string
-		homePath   string
-		wantPath   string
-		wantErrIs  error
+		name      string
+		flagPath  string
+		env       string
+		homePath  string
+		wantPath  string
+		wantErrIs error
 	}{
 		{
-			name:      "flag takes priority over env and default",
-			flagPath:  existingFile,
-			env:       otherFile,
-			homePath:  homeWithConfig,
-			wantPath:  existingFile,
+			name:     "flag takes priority over env and default",
+			flagPath: existingFile,
+			env:      otherFile,
+			homePath: homeWithConfig,
+			wantPath: existingFile,
 		},
 		{
-			name:      "flag ignored when file does not exist, env used",
-			flagPath:  absent,
-			env:       existingFile,
-			homePath:  homeWithConfig,
-			wantPath:  existingFile,
+			name:     "flag ignored when file does not exist, env used",
+			flagPath: absent,
+			env:      existingFile,
+			homePath: homeWithConfig,
+			wantPath: existingFile,
 		},
 		{
-			name:      "env fallback when flag empty",
-			flagPath:  "",
-			env:       existingFile,
-			homePath:  homeWithConfig,
-			wantPath:  existingFile,
+			name:     "env fallback when flag empty",
+			flagPath: "",
+			env:      existingFile,
+			homePath: homeWithConfig,
+			wantPath: existingFile,
 		},
 		{
-			name:      "env multiple paths - first non-existing then existing",
-			flagPath:  "",
-			env:       absent + string(os.PathListSeparator) + existingFile,
-			homePath:  homeWithConfig,
-			wantPath:  existingFile,
+			name:     "env multiple paths - first non-existing then existing",
+			flagPath: "",
+			env:      absent + string(os.PathListSeparator) + existingFile,
+			homePath: homeWithConfig,
+			wantPath: existingFile,
 		},
 		{
-			name:      "env multiple paths - first existing chosen",
-			flagPath:  "",
-			env:       existingFile + string(os.PathListSeparator) + otherFile,
-			homePath:  homeWithConfig,
-			wantPath:  existingFile,
+			name:     "env multiple paths - first existing chosen",
+			flagPath: "",
+			env:      existingFile + string(os.PathListSeparator) + otherFile,
+			homePath: homeWithConfig,
+			wantPath: existingFile,
 		},
 		{
-			name:      "default fallback when flag and env empty",
-			flagPath:  "",
-			env:       "",
-			homePath:  homeWithConfig,
-			wantPath:  filepath.Join(dir, ".kube", "config"),
+			name:     "default fallback when flag and env empty",
+			flagPath: "",
+			env:      "",
+			homePath: homeWithConfig,
+			wantPath: filepath.Join(dir, ".kube", "config"),
 		},
 		{
 			name:      "error when nothing found",
