@@ -1,6 +1,6 @@
 # 🔍 cobrak
 
-[![Go Version](https://img.shields.io/badge/go-1.25.0+-blue.svg)](https://golang.org/doc/devel/release)
+[![Go Version](https://img.shields.io/badge/go-1.24+-blue.svg)](https://golang.org/doc/devel/release)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/marcgeld/cobrak/workflows/CI/badge.svg)](https://github.com/marcgeld/cobrak/actions/workflows/ci.yml)
 [![Build Status](https://img.shields.io/badge/status-stable-brightgreen.svg)](#)
@@ -392,7 +392,7 @@ NO_COLOR=1 ./cobrak resources  # Colors disabled
 
 ## 🔑 Requirements
 
-- **Go 1.25.0+** - To build from source
+- **Go 1.24+** - To build from source
 - **Kubernetes cluster 1.24+** - Target cluster
 - **kubectl** - Configured kubeconfig
 - **metrics-server** (optional) - For `usage` and `diff` commands
@@ -500,7 +500,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👨‍💻 Author
 
-**Marcus Geld**
+**Marcus Gelderman**
 - GitHub: [@marcgeld](https://github.com/marcgeld)
 
 ## 🔗 Related Resources

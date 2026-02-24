@@ -11,12 +11,14 @@ linters:
     - goimports
     - misspell
     - revive
+    - shadow
 
 linters-settings:
   errcheck:
     check-blank: true
   govet:
-    check-shadowing: true
+    enable:
+      - shadow
   gofmt:
     simplify: true
   revive:
@@ -31,18 +33,17 @@ issues:
       linters:
         - errcheck
         - gosec
+  exclude-dirs:
+    - vendor
+    - .idea
 
 run:
   timeout: 5m
   tests: true
-  skip-dirs:
-    - vendor
-    - .idea
-  skip-files:
-    - ".*_test.go$"
 
 output:
-  format: colored-line-number
+  formats:
+    - format: colored-line-number
   print-issued-lines: true
   print-linter-name: true
 
