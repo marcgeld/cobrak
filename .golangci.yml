@@ -1,18 +1,21 @@
 version: "2"
 run:
   tests: true
+  timeout: 5m
 output:
   formats:
     text:
       path: stdout
       print-linter-name: true
       print-issued-lines: true
+      - format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
 linters:
   enable:
     - misspell
     - revive
     - shadow
-
 linters-settings:
   errcheck:
     check-blank: true
@@ -23,7 +26,6 @@ linters-settings:
     simplify: true
   revive:
     confidence: 0.8
-
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
@@ -35,14 +37,3 @@ issues:
   exclude-dirs:
     - vendor
     - .idea
-
-run:
-  timeout: 5m
-  tests: true
-
-output:
-  formats:
-    - format: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
-

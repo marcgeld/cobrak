@@ -83,6 +83,7 @@ func runResources(c *cobra.Command, _ []string) error {
 	// Use merged settings
 	namespace := settings.Namespace
 	outputFormat := settings.Output
+	top := settings.Top
 
 	cfg, err := k8s.NewRestConfig(kubeconfig, kubeCtx)
 	if err != nil {
@@ -146,7 +147,7 @@ func runResources(c *cobra.Command, _ []string) error {
 
 		fmt.Fprintf(c.OutOrStdout(), "\n=== POD RESOURCE DETAILS ===\n")
 		if len(podSummaries) > 0 {
-			fmt.Fprintf(c.OutOrStdout(), "%s\n\n", output.RenderPodResourceSummary(podSummaries))
+			fmt.Fprintf(c.OutOrStdout(), "%s\n\n", output.RenderPodResourceSummary(podSummaries, top))
 			fmt.Fprintf(c.OutOrStdout(), "%s\n", output.RenderPodResourceSummaryTotals(podSummaries))
 		} else {
 			fmt.Fprintf(c.OutOrStdout(), "No pods found.\n")
@@ -177,7 +178,7 @@ func runResources(c *cobra.Command, _ []string) error {
 	}
 
 	// For JSON/YAML formats, create structured output
-	resourcesSummary := buildResourcesSummary(summary, podSummaries, nsInventories, metricsAvailable)
+	resourcesSummary := buildResourcesSummary(summary, podSummaries, nsInventories, metricsAvailable, top)
 
 	outputStr, err := output.RenderOutput(resourcesSummary, format)
 	if err != nil {
@@ -194,7 +195,12 @@ func buildResourcesSummary(
 	podSummaries []resources.PodResourceSummary,
 	nsInventories []resources.NamespaceInventory,
 	metricsAvailable bool,
+	top int,
 ) *output.ResourcesSummary {
+	// Limit pods to top N if specified
+	if top > 0 && len(podSummaries) > top {
+		podSummaries = podSummaries[:top]
+	}
 	// Build cluster capacity
 	clusterCap := &output.ClusterCapacitySummary{
 		CPUCapacity:    summary.TotalCPUCapacity.String(),
