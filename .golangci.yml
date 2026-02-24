@@ -1,18 +1,21 @@
+version: "2"
+run:
+  tests: true
+  timeout: 5m
+output:
+  formats:
+    text:
+      path: stdout
+      print-linter-name: true
+      print-issued-lines: true
+      - format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
 linters:
   enable:
-    - errcheck
-    - gosimple
-    - govet
-    - ineffassign
-    - staticcheck
-    - typecheck
-    - unused
-    - gofmt
-    - goimports
     - misspell
     - revive
     - shadow
-
 linters-settings:
   errcheck:
     check-blank: true
@@ -23,9 +26,7 @@ linters-settings:
     simplify: true
   revive:
     confidence: 0.8
-
 issues:
-  exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
   exclude-rules:
@@ -36,14 +37,3 @@ issues:
   exclude-dirs:
     - vendor
     - .idea
-
-run:
-  timeout: 5m
-  tests: true
-
-output:
-  formats:
-    - format: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
-

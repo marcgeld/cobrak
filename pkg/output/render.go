@@ -229,9 +229,14 @@ func RenderDiffTable(diffs []resources.ContainerDiff, top int) string {
 }
 
 // RenderPodResourceSummary formats a table of pod resource summaries (requests/limits).
-func RenderPodResourceSummary(pods []resources.PodResourceSummary) string {
+func RenderPodResourceSummary(pods []resources.PodResourceSummary, top int) string {
 	if len(pods) == 0 {
 		return "No pods found."
+	}
+
+	// Limit to top N if top > 0
+	if top > 0 && len(pods) > top {
+		pods = pods[:top]
 	}
 
 	var buf bytes.Buffer
@@ -249,9 +254,14 @@ func RenderPodResourceSummary(pods []resources.PodResourceSummary) string {
 }
 
 // RenderPodResourceSummaryWithUsage formats a table of pod resource summaries including usage data.
-func RenderPodResourceSummaryWithUsage(pods []resources.PodResourceSummary) string {
+func RenderPodResourceSummaryWithUsage(pods []resources.PodResourceSummary, top int) string {
 	if len(pods) == 0 {
 		return "No pods found."
+	}
+
+	// Limit to top N if top > 0
+	if top > 0 && len(pods) > top {
+		pods = pods[:top]
 	}
 
 	var buf bytes.Buffer
