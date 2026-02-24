@@ -122,7 +122,7 @@ func runResources(c *cobra.Command, _ []string) error {
 	metricsAvailable := false
 	metricsReader, err := resources.NewMetricsReaderFromConfig(cfg)
 	if err == nil {
-		available, _ := metricsReader.IsAvailable(ctx)
+		available, _ := metricsReader.IsAvailable(ctx) //nolint:errcheck
 		metricsAvailable = available
 	}
 

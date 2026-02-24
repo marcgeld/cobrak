@@ -96,8 +96,7 @@ func runConfigSet(c *cobra.Command, args []string) error {
 		return fmt.Errorf("saving config: %w", err)
 	}
 
-	configPath, _ := config.GetConfigPath()
-	fmt.Fprintf(c.OutOrStdout(), "✓ Configuration updated\n")
+	configPath, _ := config.GetConfigPath() //nolint:errcheck
 	fmt.Fprintf(c.OutOrStdout(), "  Config file: %s\n", configPath)
 	fmt.Fprintf(c.OutOrStdout(), "  %s = %s\n", key, value)
 
@@ -120,7 +119,7 @@ func runConfigShow(c *cobra.Command, _ []string) error {
 		return fmt.Errorf("loading config: %w", err)
 	}
 
-	configPath, _ := config.GetConfigPath()
+	configPath, _ := config.GetConfigPath() //nolint:errcheck
 
 	fmt.Fprintf(c.OutOrStdout(), "Configuration file: %s\n\n", configPath)
 	fmt.Fprintf(c.OutOrStdout(), "output:    %s (text, json, yaml)\n", settings.Output)

@@ -75,25 +75,25 @@ func RenderPolicySummary(policies []resources.PolicySummary) string {
 
 	var sb strings.Builder
 	for _, ps := range policies {
-		sb.WriteString(fmt.Sprintf("Namespace: %s\n", ps.Namespace))
+		fmt.Fprintf(&sb, "Namespace: %s\n", ps.Namespace)
 
 		if len(ps.LimitRanges) > 0 {
 			sb.WriteString("  LimitRanges:\n")
 			for _, lr := range ps.LimitRanges {
-				sb.WriteString(fmt.Sprintf("    - %s\n", lr.Name))
+				fmt.Fprintf(&sb, "    - %s\n", lr.Name)
 				for _, item := range lr.Items {
-					sb.WriteString(fmt.Sprintf("      Type: %s", item.Type))
+					fmt.Fprintf(&sb, "      Type: %s", item.Type)
 					if item.DefaultCPU != "" {
-						sb.WriteString(fmt.Sprintf("  DefaultCPU: %s", item.DefaultCPU))
+						fmt.Fprintf(&sb, "  DefaultCPU: %s", item.DefaultCPU)
 					}
 					if item.DefaultMemory != "" {
-						sb.WriteString(fmt.Sprintf("  DefaultMemory: %s", item.DefaultMemory))
+						fmt.Fprintf(&sb, "  DefaultMemory: %s", item.DefaultMemory)
 					}
 					if item.MaxCPU != "" {
-						sb.WriteString(fmt.Sprintf("  MaxCPU: %s", item.MaxCPU))
+						fmt.Fprintf(&sb, "  MaxCPU: %s", item.MaxCPU)
 					}
 					if item.MaxMemory != "" {
-						sb.WriteString(fmt.Sprintf("  MaxMemory: %s", item.MaxMemory))
+						fmt.Fprintf(&sb, "  MaxMemory: %s", item.MaxMemory)
 					}
 					sb.WriteString("\n")
 				}
@@ -103,7 +103,7 @@ func RenderPolicySummary(policies []resources.PolicySummary) string {
 		if len(ps.ResourceQuotas) > 0 {
 			sb.WriteString("  ResourceQuotas:\n")
 			for _, rq := range ps.ResourceQuotas {
-				sb.WriteString(fmt.Sprintf("    - %s\n", rq.Name))
+				fmt.Fprintf(&sb, "    - %s\n", rq.Name)
 				var hardKeys []string
 				for k := range rq.Hard {
 					hardKeys = append(hardKeys, string(k))
@@ -112,7 +112,7 @@ func RenderPolicySummary(policies []resources.PolicySummary) string {
 				for _, k := range hardKeys {
 					hard := rq.Hard[v1.ResourceName(k)]
 					used := rq.Used[v1.ResourceName(k)]
-					sb.WriteString(fmt.Sprintf("      %s: used=%s hard=%s\n", k, used.String(), hard.String()))
+					fmt.Fprintf(&sb, "      %s: used=%s hard=%s\n", k, used.String(), hard.String())
 				}
 			}
 		}
@@ -126,19 +126,19 @@ func RenderPressureSimple(pressure *Pressure) string {
 
 	// Cluster overall pressure with color
 	pressureText := colorizePressureLevel(string(pressure.Overall), pressure.Overall)
-	sb.WriteString(fmt.Sprintf("Cluster Pressure: %s\n", pressureText))
+	fmt.Fprintf(&sb, "Cluster Pressure: %s\n", pressureText)
 
 	// Node pressures
 	for _, np := range pressure.NodePressures {
 		if np.CPUPressure != "LOW" {
 			cpuPressure := colorizePressureLevel(string(np.CPUPressure), np.CPUPressure)
 			nodeName := Header(np.NodeName)
-			sb.WriteString(fmt.Sprintf("Node %s: CPU %s (%.0f%%)\n", nodeName, cpuPressure, np.CPUUtilization))
+			fmt.Fprintf(&sb, "Node %s: CPU %s (%.0f%%)\n", nodeName, cpuPressure, np.CPUUtilization)
 		}
 		if np.MemPressure != "LOW" {
 			memPressure := colorizePressureLevel(string(np.MemPressure), np.MemPressure)
 			nodeName := Header(np.NodeName)
-			sb.WriteString(fmt.Sprintf("Node %s: Memory %s (%.0f%%)\n", nodeName, memPressure, np.MemUtilization))
+			fmt.Fprintf(&sb, "Node %s: Memory %s (%.0f%%)\n", nodeName, memPressure, np.MemUtilization)
 		}
 	}
 
@@ -146,11 +146,11 @@ func RenderPressureSimple(pressure *Pressure) string {
 	for _, nsp := range pressure.NamespacePressures {
 		if nsp.CPUPercent >= 80 {
 			nsName := Info(nsp.Namespace)
-			sb.WriteString(fmt.Sprintf("Namespace %s: CPU %.0f%% requested\n", nsName, nsp.CPUPercent))
+			fmt.Fprintf(&sb, "Namespace %s: CPU %.0f%% requested\n", nsName, nsp.CPUPercent)
 		}
 		if nsp.MemPercent >= 80 {
 			nsName := Info(nsp.Namespace)
-			sb.WriteString(fmt.Sprintf("Namespace %s: Memory %.0f%% requested\n", nsName, nsp.MemPercent))
+			fmt.Fprintf(&sb, "Namespace %s: Memory %.0f%% requested\n", nsName, nsp.MemPercent)
 		}
 	}
 
@@ -297,12 +297,12 @@ func RenderPodResourceSummaryTotals(pods []resources.PodResourceSummary) string 
 
 	var sb strings.Builder
 	sb.WriteString("=== TOTALS ===\n")
-	sb.WriteString(fmt.Sprintf("Total CPU Usage:       %s\n", totalCPUUsage.String()))
-	sb.WriteString(fmt.Sprintf("Total CPU Requests:    %s\n", totalCPURequest.String()))
-	sb.WriteString(fmt.Sprintf("Total CPU Limits:      %s\n", totalCPULimit.String()))
-	sb.WriteString(fmt.Sprintf("\nTotal Memory Usage:    %s\n", totalMemUsage.String()))
-	sb.WriteString(fmt.Sprintf("Total Memory Requests: %s\n", totalMemRequest.String()))
-	sb.WriteString(fmt.Sprintf("Total Memory Limits:   %s\n", totalMemLimit.String()))
+	fmt.Fprintf(&sb, "Total CPU Usage:       %s\n", totalCPUUsage.String())
+	fmt.Fprintf(&sb, "Total CPU Requests:    %s\n", totalCPURequest.String())
+	fmt.Fprintf(&sb, "Total CPU Limits:      %s\n", totalCPULimit.String())
+	fmt.Fprintf(&sb, "\nTotal Memory Usage:    %s\n", totalMemUsage.String())
+	fmt.Fprintf(&sb, "Total Memory Requests: %s\n", totalMemRequest.String())
+	fmt.Fprintf(&sb, "Total Memory Limits:   %s\n", totalMemLimit.String())
 
 	return strings.TrimRight(sb.String(), "\n")
 }

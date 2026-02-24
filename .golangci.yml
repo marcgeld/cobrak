@@ -14,6 +14,13 @@ linters:
   settings:
     errcheck:
       check-blank: true
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintln
+        - fmt.Fprintf
+        - (*github.com/spf13/pflag.FlagSet).GetString
+        - (*github.com/spf13/pflag.FlagSet).GetBool
+        - (*github.com/spf13/pflag.FlagSet).GetInt
     govet:
       enable:
         - shadow

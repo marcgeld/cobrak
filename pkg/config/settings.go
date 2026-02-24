@@ -83,7 +83,7 @@ func LoadSettings() (*Settings, error) {
 	}
 
 	// If config file doesn't exist, return defaults
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+	if _, statErr := os.Stat(configPath); os.IsNotExist(statErr) {
 		return settings, nil
 	}
 
@@ -115,8 +115,8 @@ func SaveSettings(settings *Settings) error {
 
 	// Create directory if it doesn't exist
 	configDir := filepath.Dir(configPath)
-	if err := os.MkdirAll(configDir, 0750); err != nil { //nolint:gosec
-		return fmt.Errorf("creating config directory: %w", err)
+	if mkdirErr := os.MkdirAll(configDir, 0750); mkdirErr != nil {
+		return fmt.Errorf("creating config directory: %w", mkdirErr)
 	}
 
 	// Write config file
@@ -124,7 +124,7 @@ func SaveSettings(settings *Settings) error {
 	if err != nil {
 		return fmt.Errorf("creating config file: %w", err)
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck
 
 	encoder := toml.NewEncoder(file)
 	if err := encoder.Encode(settings); err != nil {
