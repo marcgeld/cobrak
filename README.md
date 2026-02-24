@@ -494,6 +494,11 @@ go build -o cobrak
 ./cobrak --help
 ```
 
+#### Coverage
+```bash
+go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+go tool cover -html=coverage.txt -o coverage.html
+```
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
