@@ -11,51 +11,38 @@ linters:
   enable:
     - misspell
     - revive
-  settings:
-    errcheck:
-      check-blank: true
-      exclude-functions:
-        - fmt.Fprint
-        - fmt.Fprintln
-        - fmt.Fprintf
-        - (*github.com/spf13/pflag.FlagSet).GetString
-        - (*github.com/spf13/pflag.FlagSet).GetBool
-        - (*github.com/spf13/pflag.FlagSet).GetInt
-    govet:
-      enable:
-        - shadow
-    revive:
-      confidence: 0.8
-  exclusions:
-    generated: lax
-    rules:
-      - linters:
-          - errcheck
-          - gosec
-        path: _test\.go
-    paths:
-      - .*_test.go$
-      - vendor
-      - .idea
-      - third_party$
-      - builtin$
-      - examples$
+    - shadow
+
+linters-settings:
+  errcheck:
+    check-blank: true
+  govet:
+    enable:
+      - shadow
+  gofmt:
+    simplify: true
+  revive:
+    confidence: 0.8
+
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
-formatters:
-  enable:
-    - gofmt
-    - goimports
-  settings:
-    gofmt:
-      simplify: true
-  exclusions:
-    generated: lax
-    paths:
-      - .*_test.go$
-      - vendor
-      - .idea
-      - third_party$
-      - builtin$
-      - examples$
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+  exclude-dirs:
+    - vendor
+    - .idea
+
+run:
+  timeout: 5m
+  tests: true
+
+output:
+  formats:
+    - format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
