@@ -33,7 +33,7 @@ func RenderNamespaceInventoryTable(inventories []resources.NamespaceInventory) s
 			ns.MemLimitsTotal.String(),
 		)
 	}
-	w.Flush()
+	_ = w.Flush() //nolint:errcheck
 	return strings.TrimRight(buf.String(), "\n")
 }
 
@@ -63,7 +63,7 @@ func RenderMissingResourcesTable(containers []resources.ContainerResources, top 
 			c.HasCPURequest, c.HasCPULimit, c.HasMemRequest, c.HasMemLimit,
 		)
 	}
-	w.Flush()
+	_ = w.Flush() //nolint:errcheck
 	return strings.TrimRight(buf.String(), "\n")
 }
 
@@ -192,7 +192,7 @@ func RenderUsageTable(usages []resources.ContainerUsage, top int) string {
 			u.CPUUsage.String(), u.MemUsage.String(),
 		)
 	}
-	w.Flush()
+	_ = w.Flush() //nolint:errcheck
 	return strings.TrimRight(buf.String(), "\n")
 }
 
@@ -224,7 +224,7 @@ func RenderDiffTable(diffs []resources.ContainerDiff, top int) string {
 			d.MemUsage.String(), d.MemRequest.String(), memRatio,
 		)
 	}
-	w.Flush()
+	_ = w.Flush() //nolint:errcheck
 	return strings.TrimRight(buf.String(), "\n")
 }
 
@@ -244,7 +244,7 @@ func RenderPodResourceSummary(pods []resources.PodResourceSummary) string {
 			pod.MemRequest.String(), pod.MemLimit.String(),
 		)
 	}
-	w.Flush()
+	_ = w.Flush() //nolint:errcheck
 	return strings.TrimRight(buf.String(), "\n")
 }
 
@@ -264,7 +264,7 @@ func RenderPodResourceSummaryWithUsage(pods []resources.PodResourceSummary) stri
 			pod.MemUsage.String(), pod.MemRequest.String(), pod.MemLimit.String(),
 		)
 	}
-	w.Flush()
+	_ = w.Flush() //nolint:errcheck
 	return strings.TrimRight(buf.String(), "\n")
 }
 

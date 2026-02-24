@@ -115,12 +115,12 @@ func SaveSettings(settings *Settings) error {
 
 	// Create directory if it doesn't exist
 	configDir := filepath.Dir(configPath)
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0750); err != nil { //nolint:gosec
 		return fmt.Errorf("creating config directory: %w", err)
 	}
 
 	// Write config file
-	file, err := os.Create(configPath)
+	file, err := os.Create(configPath) // #nosec G304 -- path is derived from os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("creating config file: %w", err)
 	}
