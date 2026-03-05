@@ -76,6 +76,28 @@ jobs:
       - name: Verify binary
         run: ./cobrak --help
 
+  release-check:
+    name: Release Config Check
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.x"
+
+      - name: Check GoReleaser config
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: check
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
