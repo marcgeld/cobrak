@@ -6,7 +6,6 @@ env:
 before:
   hooks:
     - go mod tidy
-    - go generate ./...
 
 builds:
   - id: cobrak
@@ -43,7 +42,6 @@ archives:
     files:
       - README.md
       - LICENSE
-      - CONFIGURATION.md
 
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
@@ -56,24 +54,23 @@ release:
   header: |
     ## cobrak {{.Version}}
 
-    ### Features & Improvements
+    ### What's Changed
 
   footer: |
     ## Installation
 
-    ### Using Homebrew
-    ```bash
-    brew tap marcgeld/cobrak
-    brew install cobrak
-    ```
-
     ### Manual Installation
     Download the appropriate binary for your platform from the assets below.
 
-    ### Docker
+    **Linux / macOS:**
     ```bash
-    docker run marcgeld/cobrak:{{.Version}} --help
+    tar -xzf cobrak_{{.Version}}_linux_amd64.tar.gz
+    chmod +x cobrak
+    mv cobrak /usr/local/bin/
     ```
+
+    **Windows:**
+    Extract the zip file and add `cobrak.exe` to your PATH.
 
 changelog:
   sort: asc
@@ -84,42 +81,4 @@ changelog:
       - '^ci:'
       - Merge pull request
       - Merge branch
-
-brews:
-  - tap:
-      owner: marcgeld
-      name: homebrew-cobrak
-    folder: Formula
-    homepage: https://github.com/marcgeld/cobrak
-    description: Kubernetes cluster analysis CLI
-    license: MIT
-    skip_upload: true
-
-dockers:
-  - image_templates:
-      - 'marcgeld/cobrak:latest'
-      - 'marcgeld/cobrak:{{ .Tag }}'
-      - 'marcgeld/cobrak:v{{ .Major }}.{{ .Minor }}'
-    build_flag_templates:
-      - '--pull'
-      - '--label=org.opencontainers.image.created={{.Date}}'
-      - '--label=org.opencontainers.image.revision={{.FullCommit}}'
-      - '--label=org.opencontainers.image.version={{.Version}}'
-    skip_push: true
-
-signs:
-  - artifacts: checksum
-    cmd: cosign
-    args:
-      - 'sign-blob'
-      - '--key=cosign.key'
-      - '${artifact}'
-    output: true
-    artifacts: all
-
-announce:
-  slack:
-    enabled: false
-  twitter:
-    enabled: false
 
