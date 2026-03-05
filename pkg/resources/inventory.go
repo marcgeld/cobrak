@@ -147,10 +147,10 @@ func extractContainerResources(ns, podName string, c v1.Container, isInit bool) 
 func addToNamespaceInventory(inv *NamespaceInventory, cr ContainerResources) {
 	inv.ContainersTotal++
 
-	if !cr.HasCPURequest && !cr.HasMemRequest {
+	if !cr.HasCPURequest || !cr.HasMemRequest {
 		inv.ContainersMissingAnyRequests++
 	}
-	if !cr.HasCPULimit && !cr.HasMemLimit {
+	if !cr.HasCPULimit || !cr.HasMemLimit {
 		inv.ContainersMissingAnyLimits++
 	}
 

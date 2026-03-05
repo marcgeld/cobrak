@@ -100,7 +100,7 @@ func TestRenderOutput_AllFormats(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create minimal valid ResourcesSummary
 			summary := &ResourcesSummary{
-				Cluster: &ClusterCapacitySummary{
+				ClusterCapacity: &ClusterCapacitySummary{
 					CPUCapacity:    "4",
 					MemCapacity:    "8Gi",
 					CPURequests:    "2",
@@ -110,9 +110,9 @@ func TestRenderOutput_AllFormats(t *testing.T) {
 					CPUAllocatable: "3.8",
 					MemAllocatable: "7.5Gi",
 				},
-				PodDetails:       []PodCapacitySummary{},
-				Inventory:        []NamespaceCapacitySummary{},
-				MetricsAvailable: false,
+				PodDetails:         []PodDetail{},
+				NamespaceInventory: []NamespaceSummary{},
+				MetricsAvailable:   false,
 			}
 
 			result, err := RenderOutput(summary, tt.format)
@@ -127,8 +127,8 @@ func TestRenderOutput_AllFormats(t *testing.T) {
 			// Verify format-specific content
 			switch tt.format {
 			case FormatText:
-				if !strings.Contains(result, "Capacity") {
-					t.Error("text format missing Capacity")
+				if !strings.Contains(strings.ToLower(result), "capacity") {
+					t.Error("text format missing capacity info")
 				}
 			case FormatJSON:
 				if !strings.Contains(result, "{") && !strings.Contains(result, "}") {
@@ -146,11 +146,11 @@ func TestRenderOutput_AllFormats(t *testing.T) {
 // TestRenderOutput_WithPodDetails tests RenderOutput with pod data
 func TestRenderOutput_WithPodDetails(t *testing.T) {
 	summary := &ResourcesSummary{
-		Cluster: &ClusterCapacitySummary{
+		ClusterCapacity: &ClusterCapacitySummary{
 			CPUCapacity: "4",
 			MemCapacity: "8Gi",
 		},
-		PodDetails: []PodCapacitySummary{
+		PodDetails: []PodDetail{
 			{
 				Namespace:  "default",
 				Pod:        "web-pod",
@@ -168,8 +168,8 @@ func TestRenderOutput_WithPodDetails(t *testing.T) {
 				MemLimit:   "1Gi",
 			},
 		},
-		Inventory:        []NamespaceCapacitySummary{},
-		MetricsAvailable: false,
+		NamespaceInventory: []NamespaceSummary{},
+		MetricsAvailable:   false,
 	}
 
 	result, err := RenderOutput(summary, FormatText)
@@ -195,22 +195,22 @@ func TestRenderOutput_WithPodDetails(t *testing.T) {
 // TestRenderOutput_WithInventory tests RenderOutput with namespace inventory
 func TestRenderOutput_WithInventory(t *testing.T) {
 	summary := &ResourcesSummary{
-		Cluster: &ClusterCapacitySummary{
+		ClusterCapacity: &ClusterCapacitySummary{
 			CPUCapacity: "4",
 		},
-		PodDetails: []PodCapacitySummary{},
-		Inventory: []NamespaceCapacitySummary{
+		PodDetails: []PodDetail{},
+		NamespaceInventory: []NamespaceSummary{
 			{
-				Namespace:        "default",
-				ContainersTotal:  5,
-				CPURequestsTotal: "1",
-				MemRequestsTotal: "1Gi",
+				Namespace:       "default",
+				ContainersTotal: 5,
+				CPURequests:     "1",
+				MemRequests:     "1Gi",
 			},
 			{
-				Namespace:        "kube-system",
-				ContainersTotal:  3,
-				CPURequestsTotal: "500m",
-				MemRequestsTotal: "512Mi",
+				Namespace:       "kube-system",
+				ContainersTotal: 3,
+				CPURequests:     "500m",
+				MemRequests:     "512Mi",
 			},
 		},
 		MetricsAvailable: false,
@@ -239,10 +239,10 @@ func TestRenderOutput_WithInventory(t *testing.T) {
 // TestRenderOutput_EmptyData tests RenderOutput with minimal data
 func TestRenderOutput_EmptyData(t *testing.T) {
 	summary := &ResourcesSummary{
-		Cluster:          &ClusterCapacitySummary{},
-		PodDetails:       []PodCapacitySummary{},
-		Inventory:        []NamespaceCapacitySummary{},
-		MetricsAvailable: false,
+		ClusterCapacity:    &ClusterCapacitySummary{},
+		PodDetails:         []PodDetail{},
+		NamespaceInventory: []NamespaceSummary{},
+		MetricsAvailable:   false,
 	}
 
 	result, err := RenderOutput(summary, FormatText)
@@ -259,7 +259,7 @@ func TestRenderOutput_EmptyData(t *testing.T) {
 // TestFormatConsistency tests that all formats produce valid output
 func TestFormatConsistency(t *testing.T) {
 	summary := &ResourcesSummary{
-		Cluster: &ClusterCapacitySummary{
+		ClusterCapacity: &ClusterCapacitySummary{
 			CPUCapacity:    "4",
 			MemCapacity:    "8Gi",
 			CPURequests:    "2",
@@ -267,7 +267,7 @@ func TestFormatConsistency(t *testing.T) {
 			CPUAllocatable: "3.8",
 			MemAllocatable: "7.5Gi",
 		},
-		PodDetails: []PodCapacitySummary{
+		PodDetails: []PodDetail{
 			{
 				Namespace:  "default",
 				Pod:        "test-pod",
@@ -275,8 +275,8 @@ func TestFormatConsistency(t *testing.T) {
 				MemRequest: "128Mi",
 			},
 		},
-		Inventory:        []NamespaceCapacitySummary{},
-		MetricsAvailable: false,
+		NamespaceInventory: []NamespaceSummary{},
+		MetricsAvailable:   false,
 	}
 
 	formats := []OutputFormat{FormatText, FormatJSON, FormatYAML}

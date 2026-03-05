@@ -143,7 +143,28 @@ func TestNodePressure_Tracking(t *testing.T) {
 		},
 	}
 
-	client := fake.NewSimpleClientset(node1, node2)
+	// Pod assigned to high-pressure node with 90% memory request (>85% high threshold)
+	heavyPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "heavy-pod",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			NodeName: "high-pressure",
+			Containers: []corev1.Container{
+				{
+					Name: "app",
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceMemory: resource.MustParse("950Mi"), // ~95% of 1Gi
+						},
+					},
+				},
+			},
+		},
+	}
+
+	client := fake.NewSimpleClientset(node1, node2, heavyPod)
 	ctx := context.Background()
 
 	thresholds := PressureThresholds{

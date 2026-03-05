@@ -2,6 +2,7 @@ package resources
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -12,25 +13,32 @@ import (
 
 // MockMetricsReader is a mock implementation for testing metrics reading
 type MockMetricsReader struct {
-	podMetrics map[string]map[string]*corev1.ResourceList
-	available  bool
-	err        error
+	usages    []ContainerUsage
+	available bool
+	err       error
 }
 
-func (m *MockMetricsReader) IsAvailable(ctx context.Context) bool {
-	return m.available
+func (m *MockMetricsReader) IsAvailable(ctx context.Context) (bool, error) {
+	return m.available, nil
 }
 
-func (m *MockMetricsReader) PodMetrics(ctx context.Context, namespace, podName string) (map[string]*corev1.ResourceList, error) {
+func (m *MockMetricsReader) PodMetrics(ctx context.Context, namespace string) ([]ContainerUsage, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
-	if ns, ok := m.podMetrics[namespace]; ok {
-		if containerMetrics, ok := ns[podName]; ok {
-			return map[string]*corev1.ResourceList{podName: containerMetrics}, nil
+	if !m.available {
+		return nil, fmt.Errorf("metrics unavailable")
+	}
+	if namespace == "" {
+		return m.usages, nil
+	}
+	var filtered []ContainerUsage
+	for _, u := range m.usages {
+		if u.Namespace == namespace {
+			filtered = append(filtered, u)
 		}
 	}
-	return map[string]*corev1.ResourceList{}, nil
+	return filtered, nil
 }
 
 // TestBuildPodSummariesWithUsage_Integration tests pod summary building with metrics
@@ -62,12 +70,13 @@ func TestBuildPodSummariesWithUsage_Integration(t *testing.T) {
 	// Mock metrics: 50% of request
 	mockMetrics := &MockMetricsReader{
 		available: true,
-		podMetrics: map[string]map[string]*corev1.ResourceList{
-			"default": {
-				"app-pod": &corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse("250m"),
-					corev1.ResourceMemory: resource.MustParse("256Mi"),
-				},
+		usages: []ContainerUsage{
+			{
+				Namespace:     "default",
+				PodName:       "app-pod",
+				ContainerName: "app",
+				CPUUsage:      resource.MustParse("250m"),
+				MemUsage:      resource.MustParse("256Mi"),
 			},
 		},
 	}
@@ -181,12 +190,20 @@ func TestBuildPodSummariesWithUsage_MultipleContainers(t *testing.T) {
 	// Metrics for both containers
 	mockMetrics := &MockMetricsReader{
 		available: true,
-		podMetrics: map[string]map[string]*corev1.ResourceList{
-			"default": {
-				"multi-pod": &corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse("150m"),
-					corev1.ResourceMemory: resource.MustParse("192Mi"),
-				},
+		usages: []ContainerUsage{
+			{
+				Namespace:     "default",
+				PodName:       "multi-pod",
+				ContainerName: "container1",
+				CPUUsage:      resource.MustParse("80m"),
+				MemUsage:      resource.MustParse("100Mi"),
+			},
+			{
+				Namespace:     "default",
+				PodName:       "multi-pod",
+				ContainerName: "container2",
+				CPUUsage:      resource.MustParse("70m"),
+				MemUsage:      resource.MustParse("92Mi"),
 			},
 		},
 	}
@@ -254,17 +271,9 @@ func TestBuildPodSummariesWithUsage_NamespaceFilter(t *testing.T) {
 
 	mockMetrics := &MockMetricsReader{
 		available: true,
-		podMetrics: map[string]map[string]*corev1.ResourceList{
-			"default": {
-				"default-pod": &corev1.ResourceList{
-					corev1.ResourceCPU: resource.MustParse("50m"),
-				},
-			},
-			"kube-system": {
-				"kube-pod": &corev1.ResourceList{
-					corev1.ResourceCPU: resource.MustParse("50m"),
-				},
-			},
+		usages: []ContainerUsage{
+			{Namespace: "default", PodName: "default-pod", ContainerName: "app", CPUUsage: resource.MustParse("50m")},
+			{Namespace: "kube-system", PodName: "kube-pod", ContainerName: "system", CPUUsage: resource.MustParse("50m")},
 		},
 	}
 
@@ -312,12 +321,13 @@ func TestBuildPodSummariesWithUsage_UsageVsRequest(t *testing.T) {
 	// Usage is much lower than request (efficiency test)
 	mockMetrics := &MockMetricsReader{
 		available: true,
-		podMetrics: map[string]map[string]*corev1.ResourceList{
-			"default": {
-				"test-pod": &corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse("100m"),  // 10% utilization
-					corev1.ResourceMemory: resource.MustParse("100Mi"), // ~10% utilization
-				},
+		usages: []ContainerUsage{
+			{
+				Namespace:     "default",
+				PodName:       "test-pod",
+				ContainerName: "app",
+				CPUUsage:      resource.MustParse("100m"),  // 10% utilization
+				MemUsage:      resource.MustParse("100Mi"), // ~10% utilization
 			},
 		},
 	}

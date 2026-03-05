@@ -12,44 +12,34 @@ import (
 
 // TestBuildDiff_WithRealData tests diff calculation with realistic data
 func TestBuildDiff_WithRealData(t *testing.T) {
-	pod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "app-pod",
-			Namespace: "default",
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name: "app",
-					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("500m"),
-							corev1.ResourceMemory: resource.MustParse("512Mi"),
-						},
-						Limits: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("1000m"),
-							corev1.ResourceMemory: resource.MustParse("1Gi"),
-						},
-					},
-				},
-			},
+	inventory := []ContainerResources{
+		{
+			Namespace:     "default",
+			PodName:       "app-pod",
+			ContainerName: "app",
+			CPURequest:    resource.MustParse("500m"),
+			CPULimit:      resource.MustParse("1000m"),
+			MemRequest:    resource.MustParse("512Mi"),
+			MemLimit:      resource.MustParse("1Gi"),
+			HasCPURequest: true,
+			HasCPULimit:   true,
+			HasMemRequest: true,
+			HasMemLimit:   true,
 		},
 	}
 
 	// Simulate usage data (50% of request)
-	usages := map[string]map[string]*corev1.ResourceList{
-		"default": {
-			"app-pod:app": &corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse("250m"),
-				corev1.ResourceMemory: resource.MustParse("256Mi"),
-			},
+	usage := []ContainerUsage{
+		{
+			Namespace:     "default",
+			PodName:       "app-pod",
+			ContainerName: "app",
+			CPUUsage:      resource.MustParse("250m"),
+			MemUsage:      resource.MustParse("256Mi"),
 		},
 	}
 
-	diffs, err := BuildDiff([]corev1.Pod{*pod}, usages)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	diffs := BuildDiff(inventory, usage)
 
 	if len(diffs) == 0 {
 		t.Error("expected diff entries")
@@ -149,9 +139,9 @@ func TestBuildInventory_ResourceCoverage(t *testing.T) {
 		t.Errorf("expected 1 container missing limits, got %d", inv.ContainersMissingAnyLimits)
 	}
 
-	// Both containers should be in missing resources list
-	if len(containers) != 1 {
-		t.Errorf("expected 1 container in missing list, got %d", len(containers))
+	// Both containers (one from each pod) are returned
+	if len(containers) != 2 {
+		t.Errorf("expected 2 containers total, got %d", len(containers))
 	}
 }
 
@@ -215,10 +205,14 @@ func TestExtractContainerResources(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			hasCPUReq := len(tt.container.Resources.Requests[corev1.ResourceCPU]) > 0
-			hasMemReq := len(tt.container.Resources.Requests[corev1.ResourceMemory]) > 0
-			hasCPULim := len(tt.container.Resources.Limits[corev1.ResourceCPU]) > 0
-			hasMemLim := len(tt.container.Resources.Limits[corev1.ResourceMemory]) > 0
+			cpuReq := tt.container.Resources.Requests[corev1.ResourceCPU]
+			memReq := tt.container.Resources.Requests[corev1.ResourceMemory]
+			cpuLim := tt.container.Resources.Limits[corev1.ResourceCPU]
+			memLim := tt.container.Resources.Limits[corev1.ResourceMemory]
+			hasCPUReq := !cpuReq.IsZero()
+			hasMemReq := !memReq.IsZero()
+			hasCPULim := !cpuLim.IsZero()
+			hasMemLim := !memLim.IsZero()
 
 			if hasCPUReq != tt.expectedHasCPUReq {
 				t.Errorf("CPU request: expected %v, got %v", tt.expectedHasCPUReq, hasCPUReq)

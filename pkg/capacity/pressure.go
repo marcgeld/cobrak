@@ -260,7 +260,7 @@ func calculateClusterPressure(pressure *ClusterPressure, nodes []corev1.Node, po
 
 // findMaxNodePressures finds the worst CPU and Memory pressure across all nodes
 func findMaxNodePressures(nodePressures []NodePressure) (PressureLevel, PressureLevel) {
-	var maxCPU, maxMem PressureLevel
+	maxCPU, maxMem := PressureLow, PressureLow
 
 	for _, np := range nodePressures {
 		maxCPU = combinePressureLevels(np.CPUPressure, maxCPU)
