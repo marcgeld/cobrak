@@ -29,11 +29,12 @@ builds:
 
 archives:
   - id: default
-    format: tar.gz
-    wrap_in_directory: true
+    formats:
+      - tar.gz
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
     name_template: >-
       {{ .ProjectName }}_
       {{- .Version }}_
