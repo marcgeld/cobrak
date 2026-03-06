@@ -1,8 +1,19 @@
 name: release
 on:
+  # Triggered when a release is published via the GitHub web UI
+  release:
+    types: [published]
+  # Also triggered when a tag is pushed directly (e.g. via git CLI)
   push:
     tags:
       - "v*"
+
+# Prevent concurrent release runs for the same tag (can happen when both
+# events fire simultaneously after a web-UI release creation).
+# Use ref_name (e.g. "v1.0.0") so the key is identical for both trigger types.
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -32,10 +43,44 @@ jobs:
       - name: Run tests
         run: go test ./...
 
-      - uses: goreleaser/goreleaser-action@v6
+      # Ensure a GitHub release exists for this tag so that asset uploads
+      # succeed regardless of which event triggered this workflow.
+      # For the `release: published` flow the release already exists (created
+      # by the web UI), so `gh release view` succeeds and no release is created.
+      # For the `push: tags` flow (tag pushed without a web-UI release), the
+      # view command fails and a new release is created automatically.
+      - name: Ensure GitHub release exists
+        run: |
+          gh release view "${{ github.ref_name }}" \
+            || gh release create "${{ github.ref_name }}" \
+               --title "Release ${{ github.ref_name }}" \
+               --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build all binary archives using GoReleaser.
+      # --skip=publish   : do not create/update the GitHub release (we handle
+      #                    that in the steps above and below).
+      # --skip=announce  : no external announcements (not configured anyway).
+      # --skip=validate  : skip GoReleaser's pre-flight checks that verify the
+      #                    GitHub release doesn't already exist; since we
+      #                    intentionally ensured the release exists above, this
+      #                    validation would otherwise cause a false failure.
+      - name: Build release artifacts
+        uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: "~> v2"
-          args: release --clean
+          args: release --clean --skip=publish,announce,validate
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Upload the built archives and checksum file to the GitHub release.
+      # --clobber replaces any previously uploaded asset with the same name.
+      - name: Upload release assets
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            dist/*.tar.gz dist/*.zip dist/cobrak_*_checksums.txt \
+            --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
