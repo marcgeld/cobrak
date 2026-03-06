@@ -37,7 +37,12 @@ func runNodeInfo(c *cobra.Command, _ []string) error {
 	healthOnly, _ := c.Flags().GetBool("health")
 
 	// Load settings and merge with flags
-	settings, err := config.LoadSettings()
+	configFlag, _ := c.Root().PersistentFlags().GetString("config")
+	configPath, err := config.ResolveConfigPath(configFlag)
+	if err != nil {
+		return fmt.Errorf("resolving config path: %w", err)
+	}
+	settings, err := config.LoadSettingsAt(configPath)
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
 	}

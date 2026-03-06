@@ -39,8 +39,13 @@ func addResourceFlags(c *cobra.Command) {
 }
 
 func runResources(c *cobra.Command, _ []string) error {
-	// Load configuration from ~/.cobrak/settings.toml
-	settings, err := config.LoadSettings()
+	// Load configuration from resolved config path
+	configFlag, _ := c.Root().PersistentFlags().GetString("config")
+	configPath, err := config.ResolveConfigPath(configFlag)
+	if err != nil {
+		return fmt.Errorf("resolving config path: %w", err)
+	}
+	settings, err := config.LoadSettingsAt(configPath)
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
 	}
@@ -265,7 +270,12 @@ func runResourcesSimple(c *cobra.Command, _ []string) error {
 	namespace, _ := c.Root().PersistentFlags().GetString("namespace")
 
 	// Load configuration for pressure thresholds and color
-	settings, err := config.LoadSettings()
+	configFlag, _ := c.Root().PersistentFlags().GetString("config")
+	configPath, err := config.ResolveConfigPath(configFlag)
+	if err != nil {
+		return fmt.Errorf("resolving config path: %w", err)
+	}
+	settings, err := config.LoadSettingsAt(configPath)
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
 	}
