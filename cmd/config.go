@@ -35,8 +35,14 @@ func runConfigSet(c *cobra.Command, args []string) error {
 	key := args[0]
 	value := args[1]
 
+	configFlag, _ := c.Root().PersistentFlags().GetString("config")
+	configPath, err := config.ResolveConfigPath(configFlag)
+	if err != nil {
+		return fmt.Errorf("resolving config path: %w", err)
+	}
+
 	// Load current settings
-	settings, err := config.LoadSettings()
+	settings, err := config.LoadSettingsAt(configPath)
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
 	}
@@ -92,11 +98,10 @@ func runConfigSet(c *cobra.Command, args []string) error {
 	}
 
 	// Save settings
-	if err := config.SaveSettings(settings); err != nil {
+	if err := config.SaveSettingsAt(configPath, settings); err != nil {
 		return fmt.Errorf("saving config: %w", err)
 	}
 
-	configPath, _ := config.GetConfigPath()
 	fmt.Fprintf(c.OutOrStdout(), "✓ Configuration updated\n")
 	fmt.Fprintf(c.OutOrStdout(), "  Config file: %s\n", configPath)
 	fmt.Fprintf(c.OutOrStdout(), "  %s = %s\n", key, value)
@@ -114,13 +119,17 @@ func newConfigShowCmd() *cobra.Command {
 }
 
 func runConfigShow(c *cobra.Command, _ []string) error {
+	configFlag, _ := c.Root().PersistentFlags().GetString("config")
+	configPath, err := config.ResolveConfigPath(configFlag)
+	if err != nil {
+		return fmt.Errorf("resolving config path: %w", err)
+	}
+
 	// Load settings
-	settings, err := config.LoadSettings()
+	settings, err := config.LoadSettingsAt(configPath)
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
 	}
-
-	configPath, _ := config.GetConfigPath()
 
 	fmt.Fprintf(c.OutOrStdout(), "Configuration file: %s\n\n", configPath)
 	fmt.Fprintf(c.OutOrStdout(), "output:    %s (text, json, yaml)\n", settings.Output)
@@ -152,11 +161,17 @@ func newConfigResetCmd() *cobra.Command {
 }
 
 func runConfigReset(c *cobra.Command, _ []string) error {
+	configFlag, _ := c.Root().PersistentFlags().GetString("config")
+	configPath, err := config.ResolveConfigPath(configFlag)
+	if err != nil {
+		return fmt.Errorf("resolving config path: %w", err)
+	}
+
 	// Create default settings
 	settings := config.DefaultSettings()
 
 	// Save settings
-	if err := config.SaveSettings(settings); err != nil {
+	if err := config.SaveSettingsAt(configPath, settings); err != nil {
 		return fmt.Errorf("saving config: %w", err)
 	}
 

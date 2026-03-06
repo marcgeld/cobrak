@@ -35,6 +35,7 @@ func NewRootCmd() *cobra.Command {
 	root.PersistentFlags().String("kubeconfig", "", "path to kubeconfig file (default: KUBECONFIG env or ~/.kube/config)")
 	root.PersistentFlags().String("context", "", "kubeconfig context to use")
 	root.PersistentFlags().Bool("nocolor", false, "disable colored output")
+	root.PersistentFlags().String("config", "", "config file relative to ~/.cobrak/ (default: settings.toml, overrides COBRAK_CONFIG env)")
 
 	root.AddCommand(newResourcesCmd())
 	root.AddCommand(newCapacityCmd(&kubeconfig))
