@@ -97,7 +97,7 @@ func LoadSettingsAt(configPath string) (*Settings, error) {
 }
 
 // LoadSettings loads configuration using the resolved config path.
-// Path precedence: --config flag (via COBRAK_CONFIG env) > COBRAK_CONFIG env > ~/.cobrak/settings.toml.
+// Path precedence: --config flag > COBRAK_CONFIG env > ~/.cobrak/settings.toml.
 // Use LoadSettingsAt to specify an explicit resolved path.
 func LoadSettings() (*Settings, error) {
 	configPath, err := ResolveConfigPath("")
@@ -144,7 +144,7 @@ func SaveSettingsAt(configPath string, settings *Settings) error {
 }
 
 // SaveSettings saves configuration using the resolved config path.
-// Path precedence: COBRAK_CONFIG env > ~/.cobrak/settings.toml.
+// Path precedence: --config flag > COBRAK_CONFIG env > ~/.cobrak/settings.toml.
 // Use SaveSettingsAt to specify an explicit resolved path.
 func SaveSettings(settings *Settings) error {
 	configPath, err := ResolveConfigPath("")
@@ -155,7 +155,7 @@ func SaveSettings(settings *Settings) error {
 }
 
 // GetConfigPath returns the resolved configuration file path.
-// Path precedence: COBRAK_CONFIG env > ~/.cobrak/settings.toml.
+// Path precedence: --config flag > COBRAK_CONFIG env > ~/.cobrak/settings.toml.
 func GetConfigPath() (string, error) {
 	return ResolveConfigPath("")
 }
