@@ -34,7 +34,12 @@ func runResourcesUsage(c *cobra.Command, _ []string) error {
 	top, _ := c.Flags().GetInt("top")
 
 	// Load configuration and set color
-	settings, err := config.LoadSettings()
+	configFlag, _ := c.Root().PersistentFlags().GetString("config")
+	configPath, err := config.ResolveConfigPath(configFlag)
+	if err != nil {
+		return fmt.Errorf("resolving config path: %w", err)
+	}
+	settings, err := config.LoadSettingsAt(configPath)
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
 	}

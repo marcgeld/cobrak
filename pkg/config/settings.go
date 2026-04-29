@@ -72,15 +72,10 @@ func (pt *PressureThresholds) Validate() error {
 	return nil
 }
 
-// LoadSettings loads configuration from ~/.cobrak/settings.toml
-func LoadSettings() (*Settings, error) {
+// LoadSettingsAt loads configuration from the given absolute path.
+// If the file does not exist, default settings are returned.
+func LoadSettingsAt(configPath string) (*Settings, error) {
 	settings := DefaultSettings()
-
-	configPath, err := getConfigPath()
-	if err != nil {
-		// If we can't determine home dir, just use defaults
-		return settings, nil
-	}
 
 	// If config file doesn't exist, return defaults
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
@@ -88,7 +83,7 @@ func LoadSettings() (*Settings, error) {
 	}
 
 	// Read and parse the config file
-	_, err = toml.DecodeFile(configPath, settings)
+	_, err := toml.DecodeFile(configPath, settings)
 	if err != nil {
 		return nil, fmt.Errorf("reading config file %s: %w", configPath, err)
 	}
@@ -101,26 +96,40 @@ func LoadSettings() (*Settings, error) {
 	return settings, nil
 }
 
-// SaveSettings saves configuration to ~/.cobrak/settings.toml
-func SaveSettings(settings *Settings) error {
+// LoadSettings loads configuration using the resolved config path.
+// Path precedence: --config flag > COBRAK_CONFIG env > ~/.cobrak/settings.toml.
+// Use LoadSettingsAt to specify an explicit resolved path.
+func LoadSettings() (*Settings, error) {
+	configPath, err := ResolveConfigPath("")
+	if err != nil {
+		// If we can't determine the path, fall back to defaults
+		return DefaultSettings(), nil
+	}
+	return LoadSettingsAt(configPath)
+}
+
+// SaveSettingsAt saves configuration to the given absolute path.
+func SaveSettingsAt(configPath string, settings *Settings) error {
 	// Validate pressure thresholds before saving
 	if err := settings.PressureThresholds.Validate(); err != nil {
 		return err
 	}
 
-	configPath, err := getConfigPath()
-	if err != nil {
-		return fmt.Errorf("determining config path: %w", err)
-	}
-
-	// Create directory if it doesn't exist
+	// Create directory if it doesn't exist (private to the user)
 	configDir := filepath.Dir(configPath)
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return fmt.Errorf("creating config directory: %w", err)
 	}
 
-	// Write config file
-	file, err := os.Create(configPath)
+	// Use os.OpenRoot to scope file creation to configDir, preventing directory
+	// traversal and satisfying gosec G304.
+	dirRoot, err := os.OpenRoot(configDir)
+	if err != nil {
+		return fmt.Errorf("opening config directory: %w", err)
+	}
+	defer dirRoot.Close()
+
+	file, err := dirRoot.OpenFile(filepath.Base(configPath), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
 		return fmt.Errorf("creating config file: %w", err)
 	}
@@ -134,19 +143,21 @@ func SaveSettings(settings *Settings) error {
 	return nil
 }
 
-// getConfigPath returns the path to ~/.cobrak/settings.toml
-func getConfigPath() (string, error) {
-	home, err := os.UserHomeDir()
+// SaveSettings saves configuration using the resolved config path.
+// Path precedence: --config flag > COBRAK_CONFIG env > ~/.cobrak/settings.toml.
+// Use SaveSettingsAt to specify an explicit resolved path.
+func SaveSettings(settings *Settings) error {
+	configPath, err := ResolveConfigPath("")
 	if err != nil {
-		return "", fmt.Errorf("determining home directory: %w", err)
+		return fmt.Errorf("resolving config path: %w", err)
 	}
-
-	return filepath.Join(home, ".cobrak", "settings.toml"), nil
+	return SaveSettingsAt(configPath, settings)
 }
 
-// GetConfigPath is exported for testing and info purposes
+// GetConfigPath returns the resolved configuration file path.
+// Path precedence: --config flag > COBRAK_CONFIG env > ~/.cobrak/settings.toml.
 func GetConfigPath() (string, error) {
-	return getConfigPath()
+	return ResolveConfigPath("")
 }
 
 // FlagOverrides merges config file settings with command-line flags

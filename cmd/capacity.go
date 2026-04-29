@@ -22,7 +22,12 @@ func newCapacityCmd(kubeconfigFlag *string) *cobra.Command {
 			nocolor, _ := cmd.Root().PersistentFlags().GetBool("nocolor")
 
 			// Load settings and merge with flags
-			settings, err := config.LoadSettings()
+			configFlag, _ := cmd.Root().PersistentFlags().GetString("config")
+			configPath, err := config.ResolveConfigPath(configFlag)
+			if err != nil {
+				return fmt.Errorf("resolving config path: %w", err)
+			}
+			settings, err := config.LoadSettingsAt(configPath)
 			if err != nil {
 				return fmt.Errorf("loading config: %w", err)
 			}
